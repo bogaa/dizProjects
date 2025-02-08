@@ -9,17 +9,28 @@
 
 # Credits: 
 IsoFrieze, Dom and creator/contributer to Diztinguish and Asar. Many thanks for the awsome tools and explenations!
+  
   https://github.com/IsoFrieze/DiztinGUIsh/releases
 
 Kandowontu: 
+  
   DizFiles used for fastRom conversions. I have in mind to make the code more readable for some.
   https://github.com/kandowontu/kandowontu-diz-files	
 
 InsaneFirebat: 
-  Metroid dizassembly based on PJ's work (https://patrickjohnston.org/bank/index.html)
-  (https://github.com/InsaneFirebat/sm_disassembly/tree/main/diztinguish)
-  todo: adding ram-labels.. (https://patrickjohnston.org/ASM/ROM%20data/Super%20Metroid/RAM%20map.asm)
+  
+  Metroid dizassembly based on PJ's work. 
+  
+  https://patrickjohnston.org/bank/index.html
+  
+  https://github.com/InsaneFirebat/sm_disassembly/tree/main/diztinguish
+  
+  todo: adding ram-labels.. 
+  
+  https://patrickjohnston.org/ASM/ROM%20data/Super%20Metroid/RAM%20map.asm
 	
 GoldS: 	
-  MegamanX:
+  
+  MegamanX documentation.
+  
   https://romhackplaza.org/documents/mega-man-x-disassembly/	
