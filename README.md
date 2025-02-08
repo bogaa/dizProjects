@@ -7,15 +7,15 @@
   - The exported asm files can be assemble with ASAR https://github.com/RPGHacker/asar/releases/tag/v1.91
 
 
-# Credits: 
-## IsoFrieze, Dom and creator/contributer to Diztinguish and Asar. Many thanks for the awsome tools and explenations!
+## Credits: 
+## IsoFrieze, Dom and creator/contributer to Diztinguish and Asar.
   https://github.com/IsoFrieze/DiztinGUIsh/releases
 
-## Kandowontu: 
+### Kandowontu: 
   DizFiles used for fastRom conversions. I have in mind to make the code more readable for some.
   https://github.com/kandowontu/kandowontu-diz-files	
 
-## InsaneFirebat: 
+### InsaneFirebat: 
   Metroid dizassembly based on PJ's work. 
   
   https://patrickjohnston.org/bank/index.html
@@ -26,7 +26,11 @@
   
   https://patrickjohnston.org/ASM/ROM%20data/Super%20Metroid/RAM%20map.asm
 	
-## GoldS: 	
+### GoldS: 	
   MegamanX text disassembly. 
   
   https://romhackplaza.org/documents/mega-man-x-disassembly/	
+  
+  
+#### Many thanks for all the shared work and tools. Tell me if I fergot someone!
+  
