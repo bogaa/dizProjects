@@ -1,0 +1,6 @@
+Filename/rename: Mighty Morphin Power Rangers (U).smc
+
+Database match: Mighty Morphin Power Rangers (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F2B093F57B511FC30D40114649DAFC342872186B
+File/ROM CRC32: A56EB77A

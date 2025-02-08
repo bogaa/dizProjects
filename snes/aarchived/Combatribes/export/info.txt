@@ -1,0 +1,6 @@
+Filename/rename: Combatribes, The (U).smc
+
+Database match: Combatribes, The (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 6827E8D9520FFDF05E8FFBEBA71355FD32079AF2
+File/ROM CRC32: 9304044A

@@ -1,0 +1,6 @@
+Filename/rename: Exhaust Heat (Japan).sfc
+
+Database match: Exhaust Heat (Japan) (En)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 745EBF8164CA7BE58829C6130C0E06F330CD0748
+File/ROM CRC32: 5CB9BC35

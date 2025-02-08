@@ -1,0 +1,20 @@
+Filename/rename: Spanky's Quest (U).smc
+
+Database match: Spanky's Quest (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 2F9F643087A5856FB5C7DF374750015ADB8072A1
+File/ROM CRC32: CA68C5C3
+
+
+
+
+
+
+
+
+
+
+
+
+
+

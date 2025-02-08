@@ -1,0 +1,6 @@
+Filename/rename: Bill Laimbeer's Combat Basketball (U) [!].smc
+
+Database match: Bill Laimbeer's Combat Basketball (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: C4229E655A621C25E28B46BF72CB0A70A4911877
+File/ROM CRC32: 468D8CDD

@@ -1,0 +1,6 @@
+Filename/rename: Mighty Morphin Power Rangers - The Fighting Edition (U).smc
+
+Database match: Mighty Morphin Power Rangers - The Fighting Edition (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 80A856DBA0F12FD1E9EDED75D219B854910E990F
+File/ROM CRC32: 460B0A60

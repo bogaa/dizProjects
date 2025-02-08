@@ -1,0 +1,6 @@
+Filename/rename: Kidou Soukou Dion (J).smc
+
+Database match: Kidou Soukou Dion (Japan) (En)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: E98065E1DFC3E8AB1FC00F16EE90D4EA5A46D1BF
+File/ROM CRC32: 1E54F2C6

@@ -1,0 +1,21 @@
+Filename/rename: Super Aleste (J).smc
+
+Database match: Super Aleste (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: DA4F108D894DABE16ABA9C25F04443DF3ED4945A
+File/ROM CRC32: 94D28FF9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

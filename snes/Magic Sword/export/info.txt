@@ -1,0 +1,6 @@
+Filename/rename: Magic Sword (U).smc
+
+Database match: Magic Sword (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 0D64EF4149B71D13D287122F58ECA9C580FA7D0F
+File/ROM CRC32: 27325E4D

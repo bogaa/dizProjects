@@ -1,0 +1,6 @@
+Filename/rename: Hook (U).smc
+
+Database match: Hook (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 24F628D669757B5C92D6C8788DBFCB1D1AEB0481
+File/ROM CRC32: C572EF0

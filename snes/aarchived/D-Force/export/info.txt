@@ -1,0 +1,6 @@
+Filename/rename: D-Force (U).smc
+
+Database match: D-Force (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 444A4001511C80F99D9CD52866828CCC668724D2
+File/ROM CRC32: 24230807

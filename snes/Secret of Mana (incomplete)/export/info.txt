@@ -1,0 +1,11 @@
+Filename/rename: Secret of Mana (U) [!].smc
+
+Database match: Secret of Mana (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 8133041A363E3CC68CEDEF40B49B6D20D03C505D
+File/ROM CRC32: D0176B24
+
+
+
+
+

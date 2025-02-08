@@ -1,0 +1,6 @@
+Filename/rename: Flying Hero - Last Fighter Twin (J).smc
+
+Database match: Great Battle II, The - Last Fighter Twin (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: DD7BD49F27A6229E708D7C06BF432B390BC9B211
+File/ROM CRC32: 8254A32E

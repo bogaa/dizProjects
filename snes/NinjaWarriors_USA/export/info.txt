@@ -1,0 +1,6 @@
+Filename/rename: Ninja Warriors, The (U).smc
+
+Database match: Ninjawarriors (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 18B946459AF12A8D35914A5BFB62AC4CF21F9266
+File/ROM CRC32: 7537D8D7

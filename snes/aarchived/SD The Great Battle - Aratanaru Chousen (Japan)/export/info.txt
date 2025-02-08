@@ -1,0 +1,13 @@
+Filename/rename: SD The Great Battle - Aratanaru Chousen (Japan).sfc
+
+Database match: SD The Great Battle - Aratanaru Chousen (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F6869F19A31BE80E42A4E241B719F9935AD8AFAF
+File/ROM CRC32: 38726EC1
+
+
+
+
+
+
+

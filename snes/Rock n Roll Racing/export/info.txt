@@ -1,0 +1,10 @@
+Filename/rename: Rock N' Roll Racing (U) [!].smc
+
+Database match: Rock N' Roll Racing (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 66D864DD07F8EAE86CF4E1F60F176B405A2DDBE9
+File/ROM CRC32: 7D06F473
+
+
+
+

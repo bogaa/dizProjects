@@ -1,0 +1,11 @@
+Filename/rename: RPM Racing (U).smc
+
+Database match: Radical Psycho Machine Racing (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 0A8E35A4EBD4308FB37850F4D0CE64B60F639CFC
+File/ROM CRC32: F7933734
+
+
+
+
+

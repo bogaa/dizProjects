@@ -1,0 +1,9 @@
+Filename/rename: Rendering Ranger R2 (J).smc
+
+Database match: Rendering Ranger R2 (Japan) (En)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F40AC25A6CDFF1E8384723CAD0290BA42FD50BDA
+File/ROM CRC32: 8FB5AC86
+
+
+

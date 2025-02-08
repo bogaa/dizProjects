@@ -1,0 +1,9 @@
+Filename/rename: Super Earth Defense Force (U) [!].smc
+
+Database match: Earth Defense Force (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F6EE185BA96F9B6B6C6D72B11062CB0C420F6C96
+File/ROM CRC32: CA8FF946
+
+
+

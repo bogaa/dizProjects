@@ -1,0 +1,15 @@
+Filename/rename: Rushing Beat (J).smc
+
+Database match: Rushing Beat (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File SHA-1: CDA8FB79B6BDC5BBC0C84F62E14422DD2ECC4396
+File CRC32: E5091F47
+ROM SHA-1: 19CA57776D3B3CDBC8CC3444CB26E7DE1E40E9B9
+ROM CRC32: A6F0693D
+
+
+
+
+
+
+

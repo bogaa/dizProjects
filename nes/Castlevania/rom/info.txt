@@ -1,0 +1,8 @@
+Put the ROM mentioned below into this folder and execute the NES2SNES.bat.
+
+Database match: Castlevania (USA) (Rev 1)
+Database: No-Intro: Nintendo Entertainment System (v. 20210216-231042)
+File SHA-1: 7A20C44F302FB2F1B7ADFFA6B619E3E1CAE7B546
+File CRC32: 856114C8
+ROM SHA-1: 3DCB69A8C861C041AEB56C04E39ADF6D332EDA3A
+ROM CRC32: B668C7FC

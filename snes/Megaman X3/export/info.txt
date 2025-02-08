@@ -1,0 +1,6 @@
+Filename/rename: Mega Man X 3 (U) [!].smc
+
+Database match: Mega Man X3 (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: B226F7EC59283B05C1E276E2F433893F45027CAC
+File/ROM CRC32: FA0FE671

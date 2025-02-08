@@ -1,0 +1,7 @@
+Filename/rename: Bubsy in - Claws Encounters of the Furred Kind (USA).sfc
+
+Database match: Bubsy in - Claws Encounters of the Furred Kind (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 9F6FF6264E0361E074F9CFEE2EC4976866A781C5
+File/ROM CRC32: 444A52C1
+

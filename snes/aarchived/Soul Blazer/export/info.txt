@@ -1,0 +1,18 @@
+Filename/rename: Soul Blazer (U) [!].smc
+
+Database match: Soul Blazer (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F2832EB02547C39CAE3BDAAB5C2A53E4F8B31810
+File/ROM CRC32: 31B965DB
+
+
+
+
+
+
+
+
+
+
+
+

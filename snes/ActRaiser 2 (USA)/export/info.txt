@@ -1,0 +1,8 @@
+Filename/rename: ActRaiser 2 (U) [!].smc
+Patch the file with reBaseC0_act2.bps (This was done to make disassembly easier since I could not find a way to do it within diz)
+
+
+Database match: ActRaiser 2 (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 17C086F3418F7F51E5472270D756EC5112914B83
+File/ROM CRC32: 4901F718

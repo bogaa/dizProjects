@@ -1,0 +1,19 @@
+Filename/rename: Super Smash T.V. (U).smc
+
+Database match: Super Smash T.V. (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File SHA-1: F30B982807C61A65A73131E63D575BCEBBD33CFE
+File CRC32: 49B9A4AF
+ROM SHA-1: EAFEF16AA34E12E99D1A8BBE138B0A0E39DBBEF1
+ROM CRC32: 2D0B20D0
+
+
+
+
+
+
+
+
+
+
+

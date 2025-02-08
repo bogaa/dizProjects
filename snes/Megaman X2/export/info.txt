@@ -1,0 +1,6 @@
+Filename/rename: Mega Man X 2 (U) [!].smc
+
+Database match: Mega Man X2 (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 637079014421563283CDED6AEAA0604597B2E33C
+File/ROM CRC32: 947B0355

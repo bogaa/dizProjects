@@ -1,0 +1,18 @@
+Filename/rename: X-Kaliber 2097 (U).smc
+
+Database match: X-Kaliber 2097 (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 35A29B2DB17DBD4650FD425B66E31B01AEDA3D58
+File/ROM CRC32: E83ECEEA
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+Filename/rename: Shin Kidoesenki Gundam Wing - Endless Duel (J).smc
+
+Database match: Shin Kidou Senki Gundam W - Endless Duel (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File SHA-1: 7A5C1ACA37BB6498616A1D9F0C63F9473AD8ED5F
+File CRC32: 5D85E11D
+ROM SHA-1: 6710686B5A3D6620DF9FD6A5820E1717AFFF2D95
+ROM CRC32: C0AECDCA
+
+
+
+
+
+
+

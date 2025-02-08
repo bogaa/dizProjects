@@ -1,0 +1,6 @@
+Filename/rename: Cool Spot (U) [!].smc
+
+Database match: Cool Spot (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F5EF9D9367191C4FCDB84C4D11A322A9D03F89D2
+File/ROM CRC32: 44E60E58

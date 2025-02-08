@@ -1,0 +1,8 @@
+Filename/rename: Super R-Type (U) [!].smc
+
+Database match: Super R-Type (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 44B0A3B66756B04EBC5753F78613FEADB85D6B74
+File/ROM CRC32: 8B22C830
+
+

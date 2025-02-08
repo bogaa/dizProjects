@@ -1,0 +1,9 @@
+Filename/rename: Double Dragon, Return of (J).smc
+
+Database match: Return of Double Dragon (Japan) (En)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 5F03E04CE7BCA88F8C2C11934056A3A67BFB319B
+File/ROM CRC32: 10470B58
+
+
+

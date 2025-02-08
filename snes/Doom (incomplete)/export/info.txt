@@ -1,0 +1,6 @@
+Filename/rename: Doom (U) [!].smc
+
+Database match: Doom (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 736B9B994F506DE0893CEB181F942739DA089B05
+File/ROM CRC32: 9E85EA6

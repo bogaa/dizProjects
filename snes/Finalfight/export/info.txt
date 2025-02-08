@@ -1,0 +1,6 @@
+Filename/rename: Final Fight (U).smc
+
+Database match: Final Fight (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 6CA2AC5916B3201D90F88612D28006CFFEDDE03D
+File/ROM CRC32: 4CAB21DB

@@ -1,0 +1,9 @@
+Filename/rename: Super Tennis (U) [!].smc
+
+Database match: Super Tennis (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 9B2C6BEB347C6487C170D4F6FC5EE537A223626E
+File/ROM CRC32: 8D383776
+
+
+

@@ -1,0 +1,6 @@
+Filename/rename: Magical Pop'n (J).smc
+
+Database match: Magical Pop'n (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 50F70512C7E0972E9BBCDED52137DF8E8D21C937
+File/ROM CRC32: C49D28A4

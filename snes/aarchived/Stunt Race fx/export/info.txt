@@ -1,0 +1,21 @@
+Filename/rename: Stunt Race FX (U) [!].smc
+
+Database match: Stunt Race FX (USA) (Rev 1)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 781E376FF453A83C7BCF72339ABE6B842EFD9C86
+File/ROM CRC32: 380C2635
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

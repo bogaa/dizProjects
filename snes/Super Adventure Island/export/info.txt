@@ -1,0 +1,20 @@
+Filename/rename: Super Adventure Island (U) [!].smc
+
+Database match: Super Adventure Island (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 74A3671878B1D7C8B3FD5A14677C16B2D5566AF0
+File/ROM CRC32: DCD46848
+
+
+
+
+
+
+
+
+
+
+
+
+
+

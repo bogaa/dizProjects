@@ -1,0 +1,6 @@
+Filename/rename: Legend (U) (718).smc
+
+Database match: Legend (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 8D5595DE49178294914D36FFC2B38F078CBD20A0
+File/ROM CRC32: A6DD870

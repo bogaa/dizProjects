@@ -1,0 +1,7 @@
+Filename/rename: Super Metroid (JU) [!].smc
+
+Database match: Super Metroid (Japan, USA) (En,Ja)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: DA957F0D63D14CB441D215462904C4FA8519C613
+File/ROM CRC32: D63ED5F8
+

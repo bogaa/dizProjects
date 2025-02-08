@@ -1,0 +1,19 @@
+Filename/rename: Weapon Lord (U).smc
+
+Database match: WeaponLord (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File SHA-1: 77AC1344B2929CA3DC25DBB703C660AE0906B1B5
+File CRC32: 74AB8F38
+ROM SHA-1: 47E4E75A914021839DCD29B2709DC91978932A8C
+ROM CRC32: E7E7102
+
+
+
+
+
+
+
+
+
+
+

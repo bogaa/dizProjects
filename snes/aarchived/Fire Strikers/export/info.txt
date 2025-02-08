@@ -1,0 +1,6 @@
+Filename/rename: Fire Striker (U).smc
+
+Database match: FireStriker (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: CCA28AF7C399845DFF3CA17BE3F5DC1051C959AC
+File/ROM CRC32: E500C7BA6

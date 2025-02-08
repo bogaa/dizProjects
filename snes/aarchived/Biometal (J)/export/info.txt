@@ -1,0 +1,6 @@
+Filename/rename: Bio Metal (J).smc
+
+Database match: BioMetal (Japan) (En)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 9B1277BE93AA06C9C0A2ECAE99C5C357FFC5C879
+File/ROM CRC32: 8BA3D382

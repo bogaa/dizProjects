@@ -1,0 +1,8 @@
+Filename/rename: Ranma 1-2 - Ougi Jaanken (Japan).sfc
+
+Database match: Ranma 1-2 - Ougi Jaanken (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 8E8DE0C344AF1E1C357ED6F8A96443A369349D49
+File/ROM CRC32: A5DFA05
+
+

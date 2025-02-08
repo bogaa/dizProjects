@@ -1,0 +1,7 @@
+Filename/rename: Prince of Persia (J).smc
+
+Database match: Prince of Persia (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: DE1D327F90EE57C8B20E2489109638B8632F18F5
+File/ROM CRC32: CFC71E89
+

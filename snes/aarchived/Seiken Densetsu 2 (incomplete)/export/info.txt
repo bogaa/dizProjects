@@ -1,0 +1,12 @@
+Filename/rename: Seiken Densetsu 2 (J).smc
+
+Database match: Seiken Densetsu 2 (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: B78A9A844D165345631CEA1B5246C8FCBCDBC162
+File/ROM CRC32: B8049E3C
+
+
+
+
+
+

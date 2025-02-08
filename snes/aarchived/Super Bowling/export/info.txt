@@ -1,0 +1,7 @@
+Filename/rename: Super Bowling (U).smc
+
+Database match: Super Bowling (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: B17492BB3D7EBE9FDCF465C1EEB78944B0484CDA
+File/ROM CRC32: 94945B50
+

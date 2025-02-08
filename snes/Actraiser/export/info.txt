@@ -1,0 +1,5 @@
+Filename/rename: Act Raiser (U).sfc
+
+Database match: ActRaiser (USA)
+ROM SHA-1: E8365852CC20178D42C93CD188A7AE9AF45369D7
+ROM CRC32: EAC3358D

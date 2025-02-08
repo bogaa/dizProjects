@@ -1,0 +1,13 @@
+Filename/rename: The Ninja Warriors Again, (J).sfc
+
+Database match: Ninjawarriors Again, The (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 2705B8F7707D2071911F5AABBA3144D302441E48
+File/ROM CRC32: 3BC037B6
+
+
+
+
+
+
+

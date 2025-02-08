@@ -1,0 +1,6 @@
+Filename/rename: HyperZone (U) [!].smc
+
+Database match: HyperZone (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 2D9C6CE1613B2180CE6A3CD4603E1ECF10F2BAC6
+File/ROM CRC32: C95B4129

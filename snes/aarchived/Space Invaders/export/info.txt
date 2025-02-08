@@ -1,0 +1,19 @@
+Filename/rename: Space Invaders (U) [!].smc
+
+Database match: Space Invaders (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 125A5A045AB6CB60728C8ADED449C7B6A8144035
+File/ROM CRC32: CAF035F5
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,6 @@
+Filename/rename: Mega Man X (V1.1) (U).smc
+
+Database match: Mega Man X (USA) (Rev 1)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: C65216760BA99178100A10D98457CF11496C2097
+File/ROM CRC32: DED53C64

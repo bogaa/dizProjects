@@ -1,0 +1,15 @@
+Filename/rename: Sim City (U) [!].smc
+
+Database match: SimCity (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 9140AE08D62A562CCB98576BA89F381F9F4F1439
+File/ROM CRC32: 8AEDD3A1
+
+
+
+
+
+
+
+
+

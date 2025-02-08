@@ -1,0 +1,8 @@
+Filename/rename: Pilotwings (U) [!].smc
+
+Database match: Pilotwings (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: FE941BA251ACF329F028A1603A43562DB2C75E51
+File/ROM CRC32: 266C44ED
+
+

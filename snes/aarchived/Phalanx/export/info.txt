@@ -1,0 +1,7 @@
+Filename/rename: Phalanx - The Enforce Fighter A-144 (U) [!].smc
+
+Database match: Phalanx (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 67CDB495F4A6B53AB79965A6AF6DBBD9990D1060
+File/ROM CRC32: DC90A8AB
+

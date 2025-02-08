@@ -1,0 +1,7 @@
+Filename/rename: Harvest Moon (U).smc
+
+Database match: Harvest Moon (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: A64A5634429A4F5341868A40C220D7BE89FDA70A
+File/ROM CRC32: F829129E
+

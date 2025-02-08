@@ -1,0 +1,14 @@
+Filename/rename: Thunder Spirits (U) [!].smc
+
+Database match: Thunder Spirits (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: B0519F373BDE918D5D03D13D6E1B0E82599F9102
+File/ROM CRC32: 522FE837
+
+
+
+
+
+
+
+
