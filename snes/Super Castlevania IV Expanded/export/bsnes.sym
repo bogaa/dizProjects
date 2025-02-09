@@ -5279,6 +5279,7 @@
 86:A379 colliTabColumnLoop
 86:A3A2 colliTab_BlockLoop
 86:A3B3 SC4edNewTableBasedCollusionFirstLevelFIX
+86:A4A4 getSpecialBGcollusion
 86:A4DF SC4edSeconLevelColluisonTableFIX00
 86:A50B SC4edSeconLevelColluisonTableFIX01
 86:A549 blockSizeOffsets_00

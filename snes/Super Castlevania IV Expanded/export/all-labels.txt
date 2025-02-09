@@ -5299,6 +5299,7 @@
 ;!^!-USED-!                        colliTab_BlockLoop = $86A3A2         ;      |        |      ;
 ;!^!-USED-!                        SC4edNewTableBasedCollusionFirstLevelFIX = $86A3B3;      |        |      ;
 ;!^!-USED-!                        ;      |        |      ;
+;!^!-USED-!                        getSpecialBGcollusion = $86A4A4      ;      |        |      ;
 ;!^!-USED-!                        SC4edSeconLevelColluisonTableFIX00 = $86A4DF;      |        |      ;
 ;!^!-USED-!                        SC4edSeconLevelColluisonTableFIX01 = $86A50B;      |        |      ;
 ;!^!-USED-!                        blockSizeOffsets_00 = $86A549        ;      |        |      ;
@@ -11203,7 +11204,6 @@
 ;!^!-USED-!                        CODE_86A47F = $86A47F                ;      |        |      ;
 ;!^!-USED-!                        CODE_86A496 = $86A496                ;      |        |      ;
 ;!^!-USED-!                        CODE_86A4A3 = $86A4A3                ;      |        |      ;
-;!^!-USED-!                        CODE_86A4A4 = $86A4A4                ;      |        |      ;
 ;!^!-USED-!                        CODE_86A4AC = $86A4AC                ;      |        |      ;
 ;!^!-USED-!                        CODE_86A4CE = $86A4CE                ;      |        |      ;
 ;!^!-USED-!                        CODE_86A4F6 = $86A4F6                ;      |        |      ;
