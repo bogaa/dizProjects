@@ -1,6 +1,7 @@
 .bkp
 .tools
 .kandoOrginal
+.dizProjects
 *.asm
 *.sfc
 *.smc

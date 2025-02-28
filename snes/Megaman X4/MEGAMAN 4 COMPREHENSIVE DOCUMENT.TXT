@@ -1,0 +1,5467 @@
+MEGAMAN 4 COMPREHENSIVE DOCUMENT
+version 1.6 - June 2016
+
+Writers:
+	Matrixz
+	MartsINY
+
+(Looks best in monospaced font)
+
+-- Update notes --
+
+Corrected sprite bank pointers for Sprite Bank 4 (6C010-7000F).
+Identified the usage of object IDs $39, $4B and $90.
+Additions by MartsINY (lots)
+	2016-06-02: Added informations on existing datas and documented more functions.
+More info on Subroutine $FD17
+Added width and height values for Enemy hit detection data vs. other sprites (weapons/megaman)
+
+LEGEND :
+========
+RTS NUBT means the RTS of the ASM is Not Used By The following functions, so you can erase it.
+RTS UBT means the RTS of the ASM is Used By The following functions. So do not erase it unless you erase the following functions (or ASM)
+RTS PUBT means the same as UBT, but its RTS is used by the precedent function.
+RTS N means no RTS
+When the RTS are used by the next functions, I write where in the ASM code under.
+
+============================ CONTENTS =============================
+
+ * NOTES
+ * TERM DESCRIPTION
+ * RAM (Memory Map)
+ * ROM MAP (From start to end)
+ * LEVEL BANK MAP
+
+ * Object ID List
+ * Sprite ID List
+ * Unused ID's
+ * Object - Vertical Wall Detection ID's (For D2FC/F0F8)
+ * Object Slot Usage
+ * Stage Bank / Scene Bank ID's
+ * Scanline Effect ID's
+ * Weapon ID's
+ * Sprite Tile Usage
+ * Primary Graphics Load ID's
+ * Sound ID's (Music / Sound effect ID's)
+
+ * ADDITIONAL MESSY NOTES:
+   * Sprite Data Formats
+   * Weapon Code Procedure
+   * Explosion Code Procedure
+   * Kill Enemy Procedure
+   * ASM explanation : Bank $3C, $805E : Crushed by a moving wall?
+   * Graphics Load Data
+   * Earlier Version Traces
+   * ROM Version / Regional differences
+   * Object/Wall Hit Detection - Object Shape Data (Vertical Hit Detection)
+
+============================== NOTES ==============================
+
+Offsets
+-------
+Two types of offsets are used in this document; ROM offset and memory offset.
+Sometimes one of them are noted, sometimes both of them are noted, seperated
+with a slash. (Memory address to the left and ROM offset to the right).
+For those not familiar with memory offsets, if an offset in this doc is
+four-digit, its not a ROM offset, unless stated as so.
+The "rom offset" section is divided into sub-sections of one or more ROM banks,
+where the size of one ROM bank is $2000 bytes.
+"MEMORY AREA" is meant to tell what range in the NES' memory
+the ROM bank(s) are loaded into when it is being used.
+
+Level data
+----------
+For areas of level data, its noted as "<level data>".
+Level data is always placed at the same locations within a ROM bank.
+After the entire "ROM Offset" section of this document, there's
+a map describing how level data is organized withing all those banks.
+
+========================= TERM DECRIPTION =========================
+
+Object Slot
+-----------
+Used to refer to a byte index in the object/sprite memory arrays.
+
+Enemy ID / Object ID / Sprite ID
+--------------------------------
+All these three mean different things, and these are the terms i use to differ the three in
+this document. Now to try to explain the difference.
+
+Enemy ID
+--------
+Identifies the different "enemies" or other objects that can be placed in a level, as part
+of level data. The Enemy ID is connected to several tables, such as HP, default speed,
+Sprite ID and Object ID.
+
+Object ID
+---------
+Identifies the different AI's of enemies or other objects. Also, Megaman 4 has a complicated
+system of using different banks for sprite data. The bank it uses to read sprite data depends on
+the Object ID, using a lookup table at $7E00A in the ROM.
+
+Sprite ID
+---------
+Identifies different sprite animations for the sprites on the screen. However, there are different
+banks used for sprite data, and these banks each have a set of Sprite ID's. Again, the sprite bank
+used depends on Object ID, and not Sprite ID.
+
+=============================== RAM ===============================
+
+List of Unused Memory
+-------------------------
+
+ZP Zero use: 2C, 4F, 5F, 68, 70-7F, 98, AE, AF
+
+ZP Relatively free:
+	94 (Not used after RESET vector code.)
+
+Temporary Memory
+----------------
+
+00-01 : Temporary - Used in all threads
+02-13 : Temporary - Used only in Main thread
+	02-0F : Lower-level temporary
+		0F : Often use with function that return values results in Carry Flag. They make
+		a ROR with it and then reuse $0F to know if the Carry was set or not.
+	10-13 : Subroutine argument / Subroutine result / Counters / Higher-level temporary
+
+These addresses are never used in NMI or IRQ.
+
+Joypad Memory
+-------------
+
+14 : Joypad 1 - Button Push Bits
+15 : Joypad 2 - Button Push Bits
+  [0 = Not Recently Pushed Down, 1 = Recently Pushed Down]
+16 : Joypad 1 - Button Status Bits
+17 : Joypad 2 - Button Status Bits
+  [0 = Not Being Pressed Down, 1 = Being Pressed Down]
+  MSB
+    bit0 : A
+    bit1 : B
+    bit2 : Select
+    bit3 : Start
+    bit4 : Up
+    bit5 : Down
+    bit6 : Left
+    bit7 : Right
+  LSB
+
+Graphics Updates
+----------------
+
+18 : Palette Buffer - Write Flag (if == 1, then write Palette Buffer to VRAM. $FF is also written.)
+19 : VRAM Buffer - Write Flag (if > 0, then write VRAM Buffer to VRAM)
+1A : VRAM Buffer - Write Flag (Vertical NameTable Updates) (if > 0, then write VRAM Buffer to VRAM, NameTable writes are done in Vertical direction. )
+
+1B : Auto Screen update - register
+1C : Screen of Auto Screen update / Screen of Auto 32x32 Tile redraw
+	If this is set to a value greater than 0 before entering weapon menu, it will draw the
+	entire screen to the 2nd Nametable before gameplay resumes.
+1D : Auto 32x32 Tile Draw. Value $80 or higher enables it.
+	MSB
+	bit0: Enable
+	bit1: Destination Nametable of Draw
+		0 = $2000
+		1 = $2400/$2800 (depends on current mirroring)
+	bit2-bit7: 32x32 Tile
+		bit2-bit4: Vertical pointer
+		bit5-bit7: Horizontal pointer
+	LSB
+
+1E : Enable special effect in Drill Man's Stage (???)
+
+--
+
+1F : Point in Level Passed
+  00 : Not passed any point
+  01 : Mid-Point
+  02 : Boss-Point (Or for some stages, secondary Mid-Point)
+
+  This byte has more uses than this one.
+
+20-21 : Screen Preset Data pointer
+
+22 : Stage Bank / Scene Graphics Bank
+
+23 : Direction which Nametable Column of Tiles has been recently drawn.
+	08 : Up
+	04 : Down
+	02 : Left
+	01 : Right
+
+24 : Tile Nametable Row/Collumn Counter
+25 : Pixel Scroll Counter X
+26 : Pixel Scroll Counter Y
+27 : Megaman's X position (Copy of 330)
+28 : Current Screen Position Megaman is on. (Copy of 348)
+   (Not current screen Scroll-wise. For Scroll-wise current screen, see Mem $F9).
+
+29 : 32x32 Tile location on the screen. It is used in two different events:
+	1. Sprite hit detection with walls. The value is based on Mega Man or an enemy's position in a screen.
+	2. Name Table updates when scrolling. The value is based on the row / collumn being updated in a screen.
+	The value is used in routine $D295 as a index into the level data.
+
+2A : Next Screen Position (Scroll Related) / Screen of Nametable updates
+
+2B : Scroll Direction + Scroll Data Index
+  b0-3: Scroll Direction
+	08 = Up
+	04 = Down
+	02 = Horizontal
+  b4-7: Current Scroll Map
+
+2C : Never used in entire game.
+
+2D : Number of Screens in Current Scroll Map.
+2E : Current Screen Position of current Scroll Map (Scroll Related)
+2F : Direction which Screen is being scrolled.
+	02 : Left
+	01 : Right
+
+Megaman stuff
+-------------
+
+30 : Status of Megaman
+  00 : On ground (Standing/Walking) 
+       OR IF STATUS WAS 01, BUT START WAS PUSHED, WHEN COMING BACK FROM PAUSE,
+       STATUS WILL BE 00 EVEN IF IT SHOULD BE 00. OR MEGA MAN HIT A ROOFT.
+       ALSO, IF ON GROUND WITH STATUS 06, 06 IS IN $30 THEN IT WILL BECOME 00.
+  01 : Jump
+  02 : Slide
+  03 : Ladder Climb
+  04 : Rush Marine
+  05 : Wire Adaptor use
+  06 : Hit by Object.
+  07 : Hit by spikes/Defeated by enemy/Fell down pit.
+	When hit by spike, to know if #$07 will be set in $30, it checks $3D
+  08 : Boss Defeated - Warp Out
+  09 : Boss Chamber - Wait for Boss to get ready.
+  0A : "Ready" blink, Warp down.
+  0B : Boss Defeated - Weapon Get / Warp Out
+  0C : Battle with Cossack - Caught by Cossack Catcher
+  0D : Cossack Stage 4 - Cossack Defeated
+  0E : Cossack Stage 4 - Cossack Defeated (Dialog)
+  0F : Wily Stage 3 Rematch Room Warp
+  10 : Enter boss room - walk a bit forward (Used with Cockrach Twins boss)
+  11 : Wire/Balloon Item achieved - Wait, then warp out.
+  12 : Wily Stage 4 - Wily defeated.
+  13 : MM escapes from Wily's Fortress
+31 : Walking Direction (Copied to memory $420)
+32 : # of Frames which Megaman's Pose should last until it returns to normal.
+     (Used for Weapon Aiming Poses, etc.)
+33 : Indicated if MM is shooting : 	#$00	MM is not shooting.
+					#$01	MM is shooting with gun (like normal weapon)
+					#$02	MM is shooting with arm (like Metal Blade)
+
+34 : Slide Counter
+35 : Buster Charge Counter (If $35 = 5C, Full Charged Shot is ready)
+36 : Buster Charge Palette set to set as megaman's palette when player releases B button.
+
+37 : Megaman horizontal movement speed Low (ratio) (Written to $3A8)
+38 : Megaman hotizontal movement speed High (pixels per frame) (Written to $3C0)
+
+39 : Horizontal Movement Patch - Direction (Toad Man Wind and more)
+	Values are as following :
+		00 : Mega Man is not moved.
+		01 : Mega Man is pushed to the right with values of 3A and 3B.
+		02 : Mega Man is pushed to the left with values of 3A and 3B.
+3A : Horizontal Movement Patch - Speed Low (Toad Man Wind and more)
+3B : Horizontal Movement Patch - Speed High (Toad Man Wind and more)
+
+3C : Megaman's Invincibility Counter - Copied to $5B8 if > 0. $05B8 is what makes him blink.
+3D : Set to #$30 when Megaman hits spikes.
+
+3E : Ring Man stage / Ring Guy / Blocked passage flag
+  Determines if Megaman has destroyed "Ring Guy" in Ring Man's stage
+  where it traps the level passage until you have defeated it.
+  Cleared at stage init.
+
+3F : Hatch hit flag. Cleared at stage init.
+  Written $50 to when megaman hits a hatch. This is used in the scrolling code to force scrolling right to the next section.
+  Note: Contains TSA type value of any hit wall, (AND #$10 != #$00)
+	But only to the right of Megaman.
+	Seems to only be used for the purpose of checking for hit with hatches.
+
+--
+
+40-4E : Seems like temporary memory, but has many different uses.
+
+  40 : Object Hit Detection With Walls - Counter.
+
+  41 : 16x16 Tile Type of 16x16 Tile Object has hit. (Result of D2FC).
+	If hit more than one 16x16 tile type, this will tell the Type with highest value.
+
+	So don't use it to know if a solid tile was hit, because if water was hit (#$60)
+	and a solid tile (#$10) it contains #$60. But in this case, $10 contains #$70.
+
+  42 : Object / Hit Detection temp?
+	Copy of Object's Y Coordinate
+
+  43 : In water, fall slowly.
+	It's a variable used to make sure Vertical Speed is lowered more slowly when in Water. It is set to #$03,
+	and then until it reached #$00, Vertical Speed is not reduced.
+ 
+  44 : Seems to contain the hit block in center of MM. It is used to know when MM changes of of place (examole center touch air and middle touch water,
+		then water will Splash
+  45-49 : Object Hit Detection with Walls - Result Array (From $45 to $49 they contain hit block from left to right I believe)
+	Most object uses only 3 ($45 to $47 like Mega Man, but Jumbig uses them all)
+
+  45 : Temporary Store of 22 when executing weapon menu.
+  46 : Temporary Store of FC when executing weapon menu. Use at some other place, like before status $30
+	is set to "Ladder Climb".
+  47 : Temporary Store of 1C when executing weapon menu.
+  48 : Temporary Store of F0 when executing weapon menu.
+  49 : Temporary Store of FD when executing weapon menu.
+  4A : Temporary Store of FA when executing weapon menu.
+
+  4B-4E : Palette Animation ID - Temporary Store
+    Used to store Palette Animation ID's from 6F0-6F3 when
+    temporarily turned off (6F0-6F3 is cleared), to be turned
+    back on by writing them back to 6F0-6F3.
+    (Used by Weapon Menu)
+
+4F : Never used in entire game.
+
+--
+
+50 : Graphics Load ID to load.
+51 : Current byte position in Gfx load - Relative to offset 52/53
+52-53 : Graphics being loaded - Address of ID
+54 : Graphics being loaded- PRG-Bank to load graphics from 
+55 : Graphics being loaded - Remaining Tile Counter
+56-57 : Graphics being loaded - Source Address Pointer
+58-59 : Graphics being loaded - Dest. VRAM Address Pointer
+
+5A-5B : Level Hit Detection : Temporary Address to Wall Hit Detect data
+
+5C : # of Scanlines before Scanline Effect, from NMI. (Copy of $F1) 
+5D : ID : Mid-frame Scanline effect to do using MMC3 Scanline IRQ's. (Copy of $F0)
+
+5E : Used with Scanline Effect #1 in Ring Man's Stage.
+
+5F : Never used in entire game.
+
+--
+
+60 : Palette Animation Handler - Index Counter
+61 : Palette Animation - Temp Mem - Copy of $18 status (Palette Buffer Write Flag)
+
+62-63 : Palette Animation handler - Temp Mem - Address of Palette Animation data
+
+64 : Palette Fade - Palette Ignore Bits.
+	(Tells Palette Fade to ignore certain parts of the palette. Must be set before fade occurs. Cleared after fade.)
+	MSB
+	bit0: Ignore BG Palette 1
+	bit1: Ignore BG Palette 2
+	bit2: Ignore BG Palette 3
+	bit3: Ignore BG Palette 4
+	bit4: Ignore Spr Palette 1
+	bit5: Ignore Spr Palette 2
+	bit6: Ignore Spr Palette 3
+	bit7: Ignore Spr Palette 4
+	LSB
+
+65 : Vertical Scrolling (Written to 2005, copy of FA)
+66 : Horizontal Scrolling (Written to 2005, Copy of 69 or FC depending on Scanline IRQ Effect in use.)
+67 : Source Nametable to Display - OR'ed with Memory $FF and written to $2000 every Vblank. 
+	Copy of FD normally, copy of 6A if Scanline IRQ Effects 3, 6, 7, 9, $A, or $B are used.
+
+68 : Never used in entire game.
+
+69 : Written to 66 if Scanline Effect ID is #3
+6A : Written to 67 if Scanline Effect ID is #3
+
+6B : If set (not 0), disable handling of sprite animations. Sprites are still rendered.
+	Counter of Health/Weapon capsule increase amount.
+
+6C-6F : Cossack Stage 4 end scene - Dialogue memory.
+  6C : Dialogue ID
+  6D : Character Pointer
+  6E-6F : Offset of Dialogue ID	(THEY ARE WRITTEN BEFORE THE ARE READ, SO YOU CAN USE THEM AT OTHER PLACES, FOR TEMPORARY USE)
+
+--
+
+70-7F : Never used in entire game.
+
+Threads
+-------
+
+80-83: Thread 1 Register
+  80 : Thread 1 Status:
+	01: Has called back by $FF1C, waiting for Vblank.
+	02: Returned from NMI, returning from thread handler.
+	04: Vblank occured, execution to proceed.
+	08: Recently been registered.
+  81 : Thread 1 Frame Wait Counter
+  82 : Thread 1 Stack Pointer
+84-87 : Thread 2 Register
+  86 : Thread 2 Stack Pointer
+88-8B : Thread 3 Register (Not used)
+8C-8F : Thread 4 Register (Not used)
+
+90 : Thread handler memory
+91 : Thread handler memory (thread counter?) / (Joypad update flag?)
+       Denotes that Joypad is already updated and doesnt need 2nd update.
+92 : Frame Counter - Increased in NMI.
+
+93-94 : Thread Code Address for new thread to be registered.
+  93 : Also has a different use in thread handler routines
+  94 : Never used after boot-up (Last use is before copyright screen fades up.)
+
+--
+
+95 : Manual Frame Counter, not increased in NMI.
+
+96 : Object Slot Counter - For Drawing Sprites
+
+97 : Sprite DMA Buffer RAM - Free sprite 8-bit Pointer / Sprite Counter
+
+98 : Never used in entire game.
+
+99 : Global Gravity Force (Always $40.)
+
+9A : VRAM update suspend flag. Used to synchronize sprite DMA updates and VRAM updates.
+
+9B : Enable Scanline IRQ Effects? (Depending on value, write is done to $E000 / $E001)
+
+9C-9D : Scanline IRQ Effect - ASM Address
+
+9E : Stage Enemy Counter - Next Enemy (first to init by forwards movement)
+9F : Stage Enemy Counter - Previous Enemy (first to init backwards movement)
+
+A0 : Item/Weapon In Use (Weapon ID)
+
+A1 : Extra Lives
+A2 : # of Energy Tanks
+
+
+A3-A8 : Slippery Block / A4 has another function
+
+A3 : It's used for Slippery Block.
+	Contains direction bits of slipping direction
+A4 : If set, MM gets hit by spikes?
+	Also in cossack Stage 1 set when MM is on slippery block (as long as he touches, even if a little, a slippery block,
+	it contains #$B0.
+A5 : Slow Down
+	This variable is always minimum #$01. Then, for every turn while walking in the same direction on ice, it is
+	increase by #$01, up to #$1A Max. Then when deccelerating, it is diminished by #$01 every turn. this value is
+	used to be substracted to $3A every turn when deccelerating
+
+A6 : This variable is like the high speed of A5 if A5 would be a low speed. But since max value of A5 it #$1A, it never
+	happen. It was probably used when programming but was never used in the end.
+
+
+A7 : Used with "Slippery" block type. 
+	Horizontal Movement Patch for Slippery Block, set in $3A (Low)
+A8 : Used with "Slippery" block type. 
+	Horizontal Movement Patch for Slippery Block, set in $3B (High)
+
+A9 : Clear Bits for Regular Stages
+  MSB
+    bit0 : Skull Man
+    bit1 : Dive Man
+    bit2 : Dust Man
+    bit3 : Ring Man
+    bit4 : Pharaoh Man
+    bit5 : Drill Man
+    bit6 : Toad Man
+    bit7 : Bright Man
+  LSB
+
+AA : Clear Bits for Cossack / Wily Stages
+  MSB
+    bit0 : Wily 4
+    bit1 : Wily 3
+    bit2 : Wily 2
+    bit3 : Wily 1
+    bit4 : Cossack 4
+    bit5 : Cossack 3
+    bit6 : Cossack 2
+    bit7 : Cossack 1
+  LSB
+
+AB : Wily Stage 3 Warp Pointer.
+AC : Wily Stage 3 Rematch Warp Room - Robot Master Clear Bits.
+  (Cleared at Stage Clear along with $100-$11F.)
+  MSB
+    bit0 : Dust Man (Lower-Right)
+    bit1 : Ring Man (Right)
+    bit2 : Pharaoh Man (Upper-Right)
+    bit3 : Toad Man (Center-Right)
+    bit4 : Dive Man (Center-Left)
+    bit5 : Skull Man (Lower-Left)
+    bit6 : Bright Man (Left)
+    bit7 : Drill Man (Uppwer-Left)
+  LSB
+
+AD : Suspend Megaman's Movement by # frames.
+  (Used in Bright Man boss battle)
+
+AE-AF : Never used in entire game.
+
+--
+
+B0 : Megaman's HP
+Weapon Energy - Array:
+  B1 : Rush Coil
+  B2 : Rush Jet
+  B3 : Rush Marine
+
+  B4 : Toad - Rain Flush
+  B5 : Wire Adaptor
+  B6 : Balloon Adaptor
+  B7 : Dive - Dive Missile
+  B8 : Ring - Ring Boomerang
+  B9 : Drill - Drill Bomb
+  BA : Dust - Dust Crusher
+  BB : Pharaoh - Pharaoh Shot
+  BC : Bright - Flash Stopper
+  BD : Skull - Skull Barrier
+  BE : Set to #$9C when opening weapon's menu.
+       This is simply used to draw the energy bar
+       below "M.Buster" (using the same method as for the
+       other energy bars). The buster bar is always full
+       in the weapon's menu ;)
+
+BF : Robot Master HP - This is a copy of $467 (or $466 in some cases)
+     used to draw the Boss energy bar.
+
+Music / Sound
+-------------
+
+C0 : Sound routines memory.
+
+C1-C7 : Sound routines memory
+
+C8 : BGM Tempo Low Counter
+C9-CA : BGM Tempo
+CB : BGM Transpose
+CC : BGM Fade Down / Up Speed (Set to Activate)
+CD : BGM Fade Depth
+
+CE-D0 : Sound routines memory
+  CE : Sound's priority. Useful if in certain case you want a specific sound to crush another one.
+D1-D5 : Sound Effect stuff..
+D6 : Sound routines memory - seems to be 00 most of the time..
+D7 : Sound routines memory - also seems to be 00 mostly.
+D8 : Sound routines memory - same.
+
+D9 : Current Sound ID playing (Music)
+DA : Sound ID Init Array Counter (after init?)
+DB : Sound ID Init Array Counter
+DC-E3 : Sound ID Init Array
+  E0 : Sound ID
+
+-------------
+
+E4-E7 : Random Numbers
+  E4 : Also written to outside random generator
+  E6 : Also written to outside random generator
+  E7 : Also written to outside random generator
+
+E6-E7 : Temp Values Used In Weapon Particle Hit Detection..
+	Also Temp Mem in Scrolling Nametable Updates.
+
+E8-E9 : NMI return address store/backup - used with stack manipulation in NMI. 
+
+EA : If set (not zero) : Disable all writes to PPU registers and disable Scanline IRQ effects.
+
+EB : Object (ASM) Object Slot Counter
+
+EC : Copy (Backup) of $F6
+
+ED : Backup of X Register (Used by $FF5C Routine.)
+EE : Backup of Y Register (Used by $FF5C Routine.) 
+
+EF : Y Coordinate to give sprites below coordinate background priority. (00 = disable)
+	See C86B. For every stage, this table is looked to set $EF
+
+F0 : Mid-frame Scanline effect# to do using MMC3 Scanline IRQ's.
+
+F1 : Scanline IRQ Effect - # of Scanlines before Start - Copied to 5C.
+
+F2 : Value which has been recently written to $8000 (MMC3 Control Register).
+F3 : Bank which has been switched into MMC3 Bank A ($8000 - $9FFF) - Copy of F5 at bankswitch.
+F4 : Bank which has been switched into MMC3 Bank B ($A000 - $BFFF) - Copy of F6 at bankswitch.
+F5 : Bank to Bankswitch to - MMC3 Bank A ($8000 - $9FFF)
+F6 : Bank to Bankswitch to - MMC3 Bank B ($A000 - $BFFF)
+F7 : Flag - Bankswitching in Progress? (If doing bankswitch, set to 1)
+	Sound handling in NMI/Vblank is delayed to after bankswitch if this is set. (See below.)
+F8 : Flag - Handle sound immediately after next bankswitch.
+	The sound handling done in NMI/Vblank sets the MMC3 bank registers
+	directly, and needs F7 to be clear. If it isnt clear (bankswitch in progress), F8 will be
+	set instead of handling sound at that moment.
+	Then, when the NMI returns, the bankswitching routine will check F8 after fullfilling
+	the bankswitch, and if set, branches to $FF5C which then calls the sound routines.
+	In simplier words, it assures that sound is updated once every Vblank. :p
+
+F9 : Current Screen Position (Seems independent from Memory 28)
+FA : Vertical Scrolling - Copied to 65.
+FB : Set to 00 at Stage Start, other than that, dont know if its used.
+FC : Horizontal Scrolling - Copied to 66 and 25 (Some Scanline IRQ Effects causes 66 to be overwritten)
+
+FD : Source Nametable to Display - (Bits 6/7 of PPU Control Register 0) - Written to 67 but not used if specific Scanline IRQ Effects are active.
+	0 : Display Nametable at VRAM $2000 (Normal)
+	1 : Display Nametable at VRAM $2400
+	2 : Display Nametable at VRAM $2800 (Set to for Weapon Menu)
+	3 : Display Nametable at VRAM $2C00
+
+FE : Written to $2001 (PPU Control Register 1) every Vblank.
+FF : AND'ed with #$78 and written to $2000 (PPU Control Register 0), then OR'ed with
+	67 and written to $200 again, both every Vblank.
+
+100-11F : Stage - Pickup Item Bits
+  [Ever noticed when Megaman dies and starts from a continue point,
+   some picked up items like 'E' tanks doesnt exist anymore?
+   This array sets bits to register these things. ]
+
+120-123 : Rainbow bars memory : Draw register
+	Is $80-$FF when a bar is active.
+	If value is $C0-$FF, it will draw to the screen.
+	bits 2 to 7 holds the screen position which the bar exists,
+	but the value never seem used for anything.
+124-127 : Rainbow bars memory : Nametable access address High
+128-12B : Rainbow bars memory : Nametable access address Low
+12C-12F : Rainbow bars memory : Index to TSA of level data, to draw to the screen.
+
+130-132 : Energy Bar Enable. (If >$80, draw Energy Bar.)
+  Memory Byte to use for Source is ($B0 + ([Value] AND $7F))
+  130 : Megaman
+  131 : Weapon
+  132 : Boss
+
+133-134 : Wait Counter? Used when MM achieves Wire Item 
+	Also used when Mega Man falls in a pit. They will be counted if $30 has the value 07, 08, 11 or 13.
+
+135-137 : In-Gameplay Palette Fading registers.
+	135 : Init Register
+	136 : Frame Counter
+	137 : Current Value to Subtract from Palette
+
+138 : Currently Selected Weapon/Item in Weapon Menu. Used to keep memory of cursor
+	Values :
+		00 : Mega Buster
+		01 : Flash Stopper
+		02 : Rain Flush
+		03 : Drill Bomb
+		04 : Pharaoh Shot
+		05 : Ring Boomerang
+		06 : Dust Crusher
+		07 : E-Tank
+		08 : Dive Missile
+		09 : Skull Barrier
+		0A : Rush Coil
+		0B : Rush Marine
+		0C : Rush Jet
+		0D : Wire Adaptor
+		0E : Balloon Adaptor
+
+139 : Weapon Menu - Previous selection.
+	See values of $0138. Values are the same.
+
+13A : Rain Flush Sprite Effect - Enable/Count Register
+13B : Rain Flush Relative X Coordinate Register
+13C : Flash Stopper Frame Counter Low
+13D : Flash Stopper Frame Counter High
+13E : (?) Has with rising/sinking water in Dive Man's stage to do.
+	Also, Y Pixel where MM falls or gets out of water.
+	Also used by Dust Man's moving ceiling.
+
+13F : ?? Used by Dust Man's moving ceiling.
+
+140-142 : ?? Used by Dust Man's moving ceiling.
+  140 : Shootable Block Hit - X screen on which the weapon met the block
+  141 : Shootable Block Hit - Copy of $29 at hit..
+  142 : Shootable Block Hit - 16x16 Block index of 32x32 tile which is hit. (0-3)
+
+143-144 : Counter until light turns back on automatically, after shooting lightbulb bot.
+
+145 : Toad Man boss battle uses this.
+	If >=$10, Rain Flush effect will use different sprite tile and palette. (Used when Toad Man casts
+	rain flush, rather than Megaman.)
+
+146 : Boss Object Slot index.
+
+147 : ?? Copy of $22 when Warping back after achieving Wire Item.
+	(Also copy of $22 when quitting gameplay loop.)
+	Copied back to $22 when at Password Screen, in these cases:
+		* After beating level.
+		* Game Over.
+
+148 : Cease MM Status Change (Mem $30) by set # of Frames. (i think)
+	Setting $30 to #$11 along at least will make MM warp out of screen,
+	but after this byte has been counted down to 0, decreased for every Vblank.
+	(Used when Megaman picks up Balloon and Wire Items.)
+
+149 : Used for Warps in Wily Stage 3.
+
+14A-15F : Never used in entire game.
+
+(160 and a few bytes on may also be never used, it depends on how deep the stack
+from 17F grows.)
+
+Stacks:
+-------
+
+<-17F : Third Stack (2nd Thread - Random Generator/Palette Animations)
+
+<-1BF : Secondary Stack (Main Thread - Main game loop)
+
+<-1FF : Main Stack (Thread Switch and Wait Handler)
+
+Sprite DMA Buffer RAM:
+----------------------
+
+200-2FF : Sprite DMA Buffer RAM
+	DATA FORMAT :
+		Y POSITION - TILE TO SELECT - PALETTE TO SELECT - X POSITION
+		PLEASE, NOTE THAT IF YOU DRAW TOO MUCH SPRITE ON A CERTAIN Y
+		COORDINATE, SOME WON'T DISPLAY. THERE IS A MAXIMUM OF 8.
+		Y POSITION is set to $F8 for sprites that are not used.
+
+
+---------------
+
+Sprite/Object Arrays:
+---------------------
+
+300-317 : Object ID
+318-32F : X Coordinate Ratio Counter
+330-347 : X Coordinate
+348-35F : X Screen (Level Screen)
+360-377 : Y Coordinate Ratio Counter
+378-38F : Y Coordinate
+390-3A7 : Y Screen
+	$00 : On visible screen.
+	if $80-$FF : On screen above visible screen
+	if $01-$7F : On screen below visible screen
+3A8-3BF : Horizontal Speed Low
+3C0-3D7 : Horizontal Speed High
+3D8-3EF : Vertical Speed Low
+3F0-407 : Vertical Speed High
+408-41F : Substance and Shape
+	Object's Byte:
+	MSB
+	bit0: Substance (If Set, MM is damaged if hitting Object)
+	bit1: Weapon damage
+		If 0, Weapons are deflected (however, if the weapon is set to do no damage
+			for that object, nothing happens.)
+		If 1, Object is damaged by weapons (however, if the weapon is set to do no
+			damage for that object, the weapon is deflected if object is set to
+			visible with bit 5 of Sprite Flag (of 528). If it is invisible, 
+			nothing happen.)
+	bit2-bit7 : Shape ID (Decides Height and Width setting of occupying space).
+	LSB
+	Megaman's byte in this array ($408) has no use, appearently.
+420-437 : Direction Bits
+	Object's Byte:
+	MSB
+	bit4: Up (Not neccesarily set when Jumping)
+	bit5: Down (Not neccesarily set when falling from gravity.)
+	bit6: Left
+	bit7: Right
+	LSB
+438-44F : Enemy Number# of Level
+450-467 : Enemy HP
+
+
+468-47F : Object ASM Private Memory 1
+480-497 : Object ASM Private Memory 2
+498-4AF : Object ASM Private Memory 3
+4B0-4C7 : Object ASM Private Memory 4
+4C8-4DF : Object ASM Private Memory 5
+4E0-4F7 : Object ASM Private Memory 6
+4F8-50F : Object ASM Private Memory 7
+510-527 : Object ASM Private Memory 8 - Seems to only be used for Mothraya and Rainbow bars
+
+438 : ???May never be used! Play a complete game with a debugger point to know.
+468 : Backup of $30 when MM is hit by enemy.
+480 : Used. Purpose unknown.
+498 : Has to do with Mega Man being in air. For example, when Rush Coil makes Mega Man jumps, Rush Coil increase it by 1.
+4B0 : Used with Rush Jet (Status if Megaman rides on Rush Jet?)
+4C8 : Used with Pharaoh Shot (Object slot of loading Pharaoh Shot?)
+4E0 : Flash Stopper Counter
+4F8 : Used. Purpose unknown.
+510 : Used to count energy depletion of Rush Marine
+
+528-53F : Sprite Flags
+	Object's Byte:
+	MSB
+	bit0: Game use it : set to 1 means enemy is on visible screen, 0 if he is not.
+	      For weapons, if set, it hurts enemies, else it doesn't
+	bit1: Direction: 1=Face Right 0=Face Left
+	bit2: 1=Sprite BG Priority 0=No Sprite BG Priority
+	bit3: Apply X Scrolling when drawing sprites? (1=Yes. Probably always set.)
+	bit4: If set, objects are not erased when moving out of screen. (Both Horizontally and Vertically)
+		If object can hurt Mega Man, they can touch him, if they are in another screen.
+	bit5: 1=Invisible 0=Visible
+	bit6-7: Object Wall Bits (MM can walk on object)
+		If value is 1, 2, 3, the Object have solids parts. If Mega Man hits a non solid
+		parts, he ends up on top. Here are the solid parts.
+		1: Top
+		2: All
+		3: Top, Left, Right (if hit object by under, Mega Man is replaced at a
+		certain position from the block (the right, left or top)
+	LSB
+540-557 : Sprite's Animation
+558-56F : Sprite ID
+570-587 : Animation Frame Counter
+588-59F : ASM - Low Address
+5A0-5B7 : ASM - High Address
+5B8-5CF : Invincibility Blink / Freeze Action Status
+	Object's Byte:
+	MSB
+	bit0: Mode (1 = Freeze Action, 0 = Invincibility Blink)
+	bit1-bit7: Frame Counter of Blink/Freeze
+	LSB
+	Notes: The freeze function is used with Flash Stopper.
+	Invincibility Blink refers to when Megaman or an enemy
+	gets hit and become invincible for a moment, while blinking.
+	This memory range is used for both cases.
+	For Mega Man to be invincible, value must be in $3C.
+
+5D0-5FF : Never used in entire game.
+
+---------------
+
+600-61F : Palette VRAM buffer
+620-63F : Palette Source
+
+640-67F : Attribute Table Work RAM
+
+680-6BF : Stage Special Mem / 2nd Attribute Table Work RAM
+	Memory is used by Ring Man's Rainbow bars.
+	Drill Man "Switch" Memory:
+		One byte for each Screen Position from $10 to $13:
+			Values:
+			$00 : Is Off
+			$70 : Being Turned On (Fading up Palette)
+			$7F : Is On
+	Dust Man Shootable Block Memory:
+		In the moving ceiling section from Screen Position $0C to $11:
+		Every Block in this section has each a Bit for its status in
+		the memory range $680-$691, the bit is set to 1 if the block is gone.
+		The bits seems to be organized into each byte representing a
+		field of shootable blocks of 32 pixels width and 64 pixels height.
+
+	Mem is cleared when entering a new Scroll Map Position
+	
+	This memory range is also used to cache Attribute Table updates for the 2nd Name Table,
+	at automatic screen drawing, triggered by memory $1B.
+	This is done at the moving waves of Dive Man's stage, moving ceiling of Dust Man's stage, and
+	possibly other places.
+
+6C0-6C3 : Palette Animation ID - Temporary Store
+  Used to store Palette Animation ID's from 6F0-6F3 when
+  temporarily turned off (6F0-6F3 is cleared), to be turned
+  back on by writing them back to 6F0-6F3.
+  (Debug Menu)
+6C0-6CF : 16x16 Tile Return Data (Used in Screen Drawing and Updating)	
+	Those indications are at least true when calling $D24B. Values may have different
+	uses at different times. When that function is called, $29 must contain the Structure
+	position to get datas for.
+	There are 4 tiles in a TSA Block. 4 TSA Blocks in a Structure. 6C0-6CF contains the 16 Tiles
+	of a Structure. Here is ASM code to read tile values from the buffer for a specific TSA Block
+	and tile:
+		First, load Y with the index of the TSA Block (values goes from 00 to 03).
+			LDY	#$00
+		Then, load X with a value from the table at $D2BA with Y as the index. This gives
+		the correct pointer to $6C0 for your TSA Block.
+			LDX	$D2BA,Y
+		Depending on which tile you want, you read from some address in $6C0 with X as the index.
+			LDA	$6C0,X	;Tile 00
+			LDA	$6C1,X	;Tile 01
+			LDA	$6C4,X	;Tile 02
+			LDA	$6C5,X	;Tile 03
+		
+		The contents in D2BA are as follows:
+			Y = 00: TSA Block 00:	00 
+			Y = 01: TSA Block 01:	02
+			Y = 02: TSA Block 02:	08
+			Y = 03: TSA Block 03:	0A
+
+6D0-6EF : Never used in entire game.
+
+6F0-6F3 : Palette Animation ID
+	If bit 0 is on, palette is animated.
+6F4-6F7 : Palette Animation Frame ID
+6F8-6FB : Palette Animation Vblank Frame Counter
+
+6FC-6FF : Never used in entire game.
+
+Sound:
+------
+
+704-727 : Sound Effect Memory.
+  700-703 : Instrument
+
+728-77F : BGM Memory
+  728-72B : Channel - ??
+  72C-72F : Channel - ??
+  730-733 : Channel - ?? (Has with CMD #4 to do)
+  734-737 : Channel - ?? (b0-1 : Duty Cycle, b2-7 : Volume?)
+  738-73B : Channel - ??
+  73C-73F : Channel - Pitch Tune Setting
+  740-743 : Channel - Note Slide Setting
+  744-747 : Channel - Note (not used for Noise channel)
+  748-74B : Channel - Frequency - Low
+  74C-74F : Channel - Frequency - High (Noise frq. is stored here)
+  750-753 : Channel - Data Low Address
+  754-757 : Channel - Data High Address
+  758-75B : Channel - Octave
+  75C-75F : Channel - Transpose
+  760-763 : Channel - Note Length Counter
+  764-767 : Channel - Note-On Length Setting
+  768-76B : Channel - ??
+  76C-76F : Channel - Loop Counter 0
+  770-773 : Channel - Loop Counter 1
+  774-777 : Channel - Loop Counter 2
+  778-77B : Channel - Loop Counter 3
+  77C-77F : Channel - ??
+
+780-7FE : VRAM Buffer.
+  (Used to write to Name Table VRAM, either when
+   screen is off or in NMI when screen is on.)
+  Format:
+    The buffer is divided in chunks of strings.
+    If the first byte in the chunk is $80 or more (usually $FF),
+    it means to stop reading chunks from the buffer.
+    Format of string chunk:
+      byte 0: PPU VRAM Address High (if >= $80, stop reading buffer)
+      byte 1: PPU VRAM Address Low
+      byte 2: Number of Letters/Bytes to write (minus 1; if
+        the value is 0, it means to write 1 tile, if value is 1,
+        it means to write 2 tiles, and so on..)
+      From byte 3 follows the variable-length string of bytes to write
+      in sequence, (length is the value of [Byte 2] + 1)
+      This is the end of the string chunk.
+      
+      DEFINITION : If changing them affect the colors, here is how they works.
+      Each of those byte will define a structure
+      TSA blocks' palette use. First byte decide the structure at the given
+      position, then the next byte is for the structure to the right...
+      Bit are as follow :
+	Bit 0-1 : Palette of TSA Block down right
+	Bit 2-3 : Palette of TSA Block down left
+	Bit 4-5 : Palette of TSA Block up right
+	Bit 6-7 : Palette of TSA Block up left
+
+
+  Format, explained by interpretion in C code style: {
+    unsigned char a, x, y;
+    unsigned char vram_hi, vram_lo;
+    x = 0;
+   loop:
+    a = *(0x780 + x);
+    if ((a & 0x80) == 0x80) { return (0); }
+    vram_hi = a;
+    a = *(0x781 + x);
+    vram_lo = a;
+    y = *(0x782 + x);
+    for ( ; y >= 0; y--) {
+      a = *(0x783 + x);
+      NES_PPU_VRAM[(vram_hi << 8) | vram_lo] = a;
+      x++;
+    }
+    x += 3;
+    goto loop;
+  }
+
+
+780-78F : Password enter temp buffer. Copied to B0-BF if password is accepted.
+7B0-7CF : Temporary Store of Palette while executing Weapon Menu.
+
+7FF : Never used.
+
+============================= ROM MAP =============================
+
+10 <-> 1400F - (Bank $0 <-> $9 by $2000)
+----------------------------------------
+
+CHR - Mostly Sprite Related, if not completely.
+
+  2010 <-> 400F - (Bank $1 by $2000)
+  ----------------------------------
+
+  2210-280F : Pharaoh Man
+
+  4010 <-> 600F - (Bank $2 by $2000)
+  ----------------------------------
+
+  ROM offset 5A10-5B0F : Part of Pre-Intro Graphics (City Scene - Explosion Sprites.)
+
+  6010 <-> 800F - (Bank $3 by $2000)
+  ----------------------------------
+
+  ROM offset 06410-0690F : Unused
+  ROM offset 07210-0760F : Sprites loaded by boss containing graphics of Mega Man,
+			   they are loaded in Mega Man's PPU.
+  ROM offset 07610-0770F : Sprites loaded by Pharaoh Man containing graphics of Mega Man,
+			   they are loaded in Mega Man's PPU.
+  ROM offset 07710-0780F : Sprites loaded by boss containing graphics of Mega Man,
+			   they are loaded in Mega Man's PPU.
+  ROM offset 07F10-07F8F : Spark Spine
+  ROM offset 07F90-07FCF : Piranha part 1 
+  ROM offset 07FD0-0801F : Unused Datas
+
+  8010 <-> A00F - (Bank $4 by $2000)
+  ----------------------------------
+
+  ROM offset 8010-900F : Mega Man & Rush for Weapon Get
+  ROM offset 9210-930F : Title screen tiles, cursor tile is used in Megaman 4, all sprites are used for Rockman 4 title screen.
+  ROM offset 9410-950F : Actually never used. Not referenced to by any graphics load data.
+
+  A010 <-> C00F - (Bank $5 by $2000)
+  ----------------------------------
+
+  ROM offset A390-A3AF : Tiles for Block Platform (Enemy ID $80, Object ID $60) (used in Bright Man)
+
+  C010 <-> E00F - (Bank $6 by $2000)
+  ----------------------------------
+
+  ROM offset C310-C40F : Piranha part 2
+  ROM offset C610-C70F : Before Spikes Box, Unused Datas
+  ROM offset C710-C80F : Spike Box
+
+  ROM offset D010-D04F : Some block tiles, unused, but probably meant to be used in Drill Man's stage.
+  ROM offset D310-D5EF : Mono-Roader
+  ROM offset D5F0-D60F : After Mono-Roader, Unused Datas
+  ROM offset D910-DB0F : Unused CHR :)
+
+  E010 <-> 1000F - (Bank $7 by $2000)
+  -----------------------------------
+
+  ROM offset E610-E66F : Skull Launcher
+  ROM offset E670-E70F : After Skull Launcher, Unused Datas
+  ROM offset E710-E80F : Wheeled Skull
+  ROM offset EA10-EB0F : Unused CHR - Rolling ball (?)
+  ROM offset EB10-EC0F : Unused CHR - Snake, and something.
+
+  ROM offset EE10-EF0F : Fly (Enemy ID $13) Sprite graphics.
+
+  10010 <-> 1200F - (Bank $8 by $2000)
+  ------------------------------------
+
+  106C0-1070F : Unused CHR ? (Not sure.)
+  10710-107EF : Saturn Bot
+  107F0-107FF : After Saturn Bot, Unused Datas
+  11D10-11E0F : Unused CHR :)
+  11F10-1200F : Disappearing Block
+
+  12010 <-> 1400F - (Bank $9 by $2000)
+  ------------------------------------
+
+  12410-1270F : Unused CHR :)
+
+  12710-129AF : Mega Man's Head (the face on second intro screen)
+
+  12B10-1300F : Mega Man's Head (the face on third intro screen)
+
+  13110-1330F : Unused CHR :)
+
+  13810-13B0F : Unused CHR :)
+
+
+14010 <-> 1800F - (Bank $A <-> $B by $2000)
+-------------------------------------------
+
+[Sprite Bank 1 - Certian Enemies / Objects]
+
+MEMORY AREA: $8000-$BFFF
+
+1616B-1780F : Unused random data.
+
+Tile Usage ID's:
+
+Coordinate ID's:
+2E : Unused Coordinate Data A
+43 : Unused Coordinate Data B
+
+17810-17A0F : Tile Usage - Address Table Low
+17A10-17C0F : Tile Usage - Address Table High
+17C10-17D0F : Coordinate Data - Address Table Low
+
+	NOTE! THE LAST POINTER IS #$41, SO ALL DATAS AFTER 17C4F WOULD BE USABLE! TO CHECK
+
+17D10-17E0F : Coordinate Data - Address Table High
+
+	NOTE! THE LAST POINTER IS #$41, SO ALL DATAS AFTER 17D4F WOULD BE USABLE! TO CHECK
+
+17E10-17F0F : Animation - Address Table Low
+17F10-1800F : Animation - Address Table High
+
+Adjust Value : C010
+
+18010 <-> 1C00F - (Bank $C <-> $D by $2000)
+-------------------------------------------
+
+[Sprite Bank 2 (Megaman, etc.)]
+
+MEMORY AREA: $8000-$BFFF
+
+1807C-1808F : Tile Usage - Megaman Walk (1 animation)
+180B8-180F3 : Tile Usage - Megaman Stands Still
+18120-18165 : Tile Usage - Megaman Jumps
+181A8-181BF : Tile Usage - Megaman leashes out item
+1827E-182B3 : Tile Usage(s): ??
+1868A-186E1 : Tile Usages - Balloon Item
+186E2-18733 : Tile Usage - Dive Missile
+18786-18789 : Tile Usage - Smal Pharaoh Shot
+187C6-187CF : Tile Usage - Medium Pharaoh Shot
+187DA-187ED : Tile Usage - Big Pharaoh Shot (Animation 1)
+187EE-18801 : Tile Usage - Big Pharaoh Shot (Animation 2)
+18FD6-18FE9 : Tile Usage - Wire Item Capsule
+8FDA-8FED / 18FEA-18FFD : Tile Usage - Balloon Item Capsule
+18FFE-1909F : Tile Usage - Wily saucer flying away
+
+1974A-19771 : Coordinate - Megaman
+197CE-197DD : Coordinate - Megaman
+197EE-19811 : Coordinate - Megaman Facing Left
+1994C-19961 : Coordinate - Megaman leashing out item
+199F4-19A05 : Coordinate - Common 16x16 Sprite?
+19C50-19C65 : Coordinate - Balloon Item
+1A35E-1A3BF : Coordinate - Wily saucer flying away
+
+1A6DA-1A6E6 : Animation - Megaman (Standing)
+
+1A74C-1A752 : Animation - Unused 1
+1A767-1A769 : Animation - Unused 
+
+1A818 : Times for "Ready" to blink before MM warps in. (Default = $19)
+        (Changing it doesnt work. I dont know why.)
+1A819 : "Ready" Blink Delay
+
+1A85F-1A866 : Animation datas - Balloon Item
+
+1A86F-1A87A : Animation - Dive Missile
+
+1A888-1A891 : Animation datas - Pharaoh Shot
+
+A8B0-A8B3 / 1A8C0-1A8C3 : Animation - Wire Item Capsule
+A8B4-A8B7 / 1A8C4-1A8C7 : Animation - Balloon Item Capsule
+
+1A9B6-1A9C5 : Animation - Wily Saucer flying away
+
+1AA7D-1B80F : Unused space with random data.
+
+1B810-1B987 : Tile Usage - Address Table Low
+1BA10-1BB87 : Tile Usage - Address Table High
+1BC10-1BD0F : Coordinate Data - Address Table Low
+1BD10-1BE0F : Coordinate Data - Address Table High
+1BE10-1BEBF : Animation - Address Table Low
+1BF10-1BFBF : Animation - Address Table High
+
+Adjust Value : 10010
+
+Tile Usage:
+21-2B : Unused.
+40-42 : Unused.
+48 : Unused.
+51-54 : Unused.
+57 : Unused.
+62-65 : Balloon Item
+92-99 : Unused.
+EB-EC : Wire Item Capsule
+ED-EE : Balloon Item Capsule
+101-108 : Wily saucer flying away
+
+Coordinate ID's:
+20 : Medium Pharaoh Shot, Shooted left
+21 : Medium Pharaoh Shot, Shooted right
+22 : Small Pharaoh Shot, Shooted left
+23 : Small Pharaoh Shot, Shooted right
+24 : Big Pharaoh Shot Left
+25 : Big Pharaoh Shot Right
+41 : Balloon Item Left
+42 : Balloon Item Right
+97-9D : Wily saucer flying away
+
+1C010 <-> 2000F - (Bank $E <-> $F by $2000)
+------------------------------------------------
+
+[Sprite Bank 3 - Boss, and certain other things.]
+
+
+1F810-1FA0F : Tile Usage - Address Table Low
+1FA10-1FC0F : Tile Usage - Address Table High
+1FC10-1FD0F : Coordinate Data - Address Table Low
+1FD10-1FE0F : Coordinate Data - Address Table High
+1FE10-1FF0F : Animation - Address Table Low
+1FF10-2000F : Animation - Address Table High
+
+Adjust Value : 14010
+
+20010 <-> 3600F - (Bank $10 <-> $1A by $2000)
+---------------------------------------------
+
+CHR - Stage / Cutscene Backgrounds.
+
+  2A010 <-> 2C00F - (Bank $15 by $2000)
+  ---------------------------------------
+
+  2BD10-2C00F : This CHR is unused :)
+
+36010 <-> 3800F - (Bank $1B by $2000)
+-------------------------------------
+
+[Intro Sequence / Ending / Credits - Code & Data]
+
+8000 : Entry Point - Pre-Intro
+
+8003-> : Ending/Credits programming
+
+8458 : In middle of Credits programming
+
+8875 -> : Background Palettes!
+  88F5 / 36905 : Intro 0
+  8915 / 36925 : Intro 1
+  8935 / 36945 : Intro 2
+  8955 / 36965 : Intro 3
+  89B5 / 369C5 : ??
+  369E5 : ??
+  36A05 : ??
+  36A25 : ??
+  36A45 : ??
+  36A65 : ??
+  36A85 : Epilogue?
+  36AA5 : ??
+
+8E36-> : ASM - Pre-Intro
+
+9AD4-9FFF : 
+
+38010 <-> 3A00F - (Bank $1C by $2000)
+-------------------------------------
+
+CHR - Some sprite CHR, some intro sequence CHR.
+
+  38CB0-3900F : Before Mega Man's Body Graphics Datas of fourth intro screen
+  39010-394BF : Mega Man's Body Graphics Datas of fourth intro screen
+  394C0-39FDF : Mega Man's Head Graphics Datas of fourth intro screen
+
+3A010 <-> 3C00F - (Bank $1D by $2000)
+-------------------------------------
+
+[Sound Data Bank #2]
+
+3B9D2-3C00F : Not used.
+
+	3B9D2-3BA70: Shadow of 3B933-3B9D1, probably from earlier version of game. Nothing new.
+	3BA71-3BFFF: Shadow of Sprite Data Pointers from earlier version of game? (which were moved to different bank?)
+
+3C010 <-> 3E00F - (Bank $1E by $2000)
+-------------------------------------
+
+[Sound Data Bank #0]
+
+ASM:
+8000: Entry Point - Frame Playback
+8003: Entry Point - Sound ID Init (Sound ID in A)
+
+3E010 <-> 4000F - (Bank $1F by $2000)
+-------------------------------------
+
+[Sound Data Bank #1]
+
+40010 <-> 4200F - (Bank $20 by $2000)
+-------------------------------------
+
+[Bright Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Bright Man
+
+B700-B7FF : Mega Buster: Damage to each object ID
+
+B800-B8C6 : Palette Animation Handler ASM
+	B813-B822 : Check for each palette if it's animated. If so, call $B829.
+		If #$80 (bit 7 is on), palette is animated.
+	B829-B862 : Subroutine called if palette is animated.
+
+B8C7-> : Palette Animations - Palette Sets - (Groups of 3 bytes)
+	D3 is last Palette Set
+
+BB43-BD2B : Palette Animation Data
+
+BD2C-BD6B : Palette Animation ID Offset - Low Byte
+BD6C-BDAB : Palette Animation ID Offset - High Byte
+
+41DBD-4200F : Unused random data.
+
+42010 <-> 4400F - (Bank $21 by $2000)
+-------------------------------------
+
+[Toad Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Toad Man
+
+B700-B7FF : Rush Coil : Damage to each object ID (Should be same as Mega Buster)
+
+B800-BFFF : Unused random data.
+
+44010 <-> 4600F - (Bank $22 by $2000)
+-------------------------------------
+
+[Drill Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Drill Man
+
+B700-B7FF : Rush Jet : Damage to each object ID (Should be same as Mega Buster)
+
+B800-BFFF / 45810-4600F: Graphics (Wily Stage 2)
+
+46010 <-> 4800F - (Bank $23 by $2000)
+-------------------------------------
+
+[Pharaoh Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Pharaoh Man
+	B5E0-B6FF : Unused.
+	
+B700-B7FF : Rush Marine : Damage to each object ID (Should be same as Mega Buster)
+
+B800-BFFF / 47810-4800F : Dr.Wily Stage 2 Boss Tiles
+
+48010 <-> 4A00F - (Bank $24 by $2000)
+-------------------------------------
+
+[Ring Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Ring Man
+
+B700-B7FF / 49710-4980F: Rain Flush: Damage/Effect to each Object ID
+
+B800-BFFF / 49810-4A00F: Unused tile table: Japanese characters and other characters.
+
+4A010 <-> 4C00F - (Bank $25 by $2000)
+-------------------------------------
+
+[Dust Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Dust Man
+
+B700-B7FF / 4B710-4B80F : Wire Adaptor : Damage to each Object ID
+
+A800-BFFF / 4B810-4C00F: Ending Scene (Train Ride) Tiles
+
+4C010 <-> 4E00F - (Bank $26 by $2000)
+-------------------------------------
+
+[Dive Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Dive Man
+
+B700-B7FF : Balloon Adaptor : Damage to each Object ID (All zero. Not used at all!) 
+NOTE: IF YOU WANT COLLISION TO BE CHECKED BETWEEN BALLONG AND ENEMIES, CHANGE
+THE VALUE OF $FABE FOR THE BALLOON ADAPTOR ITEM.
+
+A800-BFFF / 4D810-4E00F: Wily Stage 4 BG Tiles
+
+4E010 <-> 5000F (Bank $27 by $2000)
+-----------------------------------
+
+[Skull Man Stage Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Skull Man
+
+B700-B7FF / 4F710-4F80F : Dive Missile : Damage to each Object ID
+
+B800-BFFF / 4F810-5000F : Empty, unused space.
+
+50010 <-> 5200F (Bank $28 by $2000)
+-----------------------------------
+
+[Cossack Stage 1 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Cossack Stage 1
+
+B700-B7FF / 51710-5180F : Ring Boomerang : Damage to each Object ID
+
+[Primary Graphics Load Data]
+
+51810-5187F : Offset - Low Byte
+51880-518EF : Offset - High Byte 
+518F0-51DD1 : Primary Graphics Load - Data
+51DD2-5200F : Filler Junk (Usable for expanded Primay Graphics Load Data)
+
+52010 <-> 5400F (Bank $29 by $2000)
+-----------------------------------
+
+[Cossack Stage 2 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Cossack Stage 2
+
+B700-B7FF / 53710-5380F : Drill Bomb : Damage to each Object ID
+
+[Scroll Graphics Load Data]
+
+B800-B84F / 53810-5385F : Scroll Gfx Load - Offset - Low Byte
+B860-B8AF / 53870-538BF : Scroll Gfx Load - Offset - High Byte
+B8B0-> / 538C0-> : Scroll Gfx Load - Data
+
+	53BF1-53BF4 : Palette for Pharaoh Man (P1) BODY
+	53BF5-53BF8 : Palette for Pharaoh Man (P2) JEWEL
+
+	53BBA-53BBD : Palette for Dust Man (P1) VACCUM
+	53BBE-53BC1 : Palette for Dust Man (P2) BODY
+
+54010 <-> 5600F - (Bank $2A by $2000)
+-------------------------------------
+
+[Cossack Stage 3 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Cossack Stage 3
+
+B700-B7FF / 55710-5580F : Dust Crusher : Damage to each Object ID
+
+B800-BFFF / 55810-5600F : Intro Sequence Graphics (City)
+
+56010 <-> 5800F - (Bank $2B by $2000)
+-------------------------------------
+
+[Cossack Stage 4 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Cossack Stage 4
+
+B700-B7FF / 57710-5780F : Pharaoh Shot : Damage to each Object ID
+
+B800-BFFF / 57810-5800F: Intro Sequence Graphics (Megaman is born)
+
+58010 <-> 5A00F - (Bank $2C by $2000)
+-------------------------------------
+
+[Wily Stage 1 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Wily Stage 1
+
+B700-B7FF / 59710-5980F : Flash Stopper : Property/effect to each Object ID
+
+B800-BFFF / 59810-5A00F: Intro Sequence Graphics (Train Ride)
+
+5A010 <-> 5C00F - (Bank $2D by $2000)
+-------------------------------------
+
+[Wily Stage 2 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Wily Stage 2
+
+B700-B7FF / 5B710-5B80F : Skull Barrier : Damage/effect to each Object ID
+	If Value is $FF, it will remove the enemy Object instantly. (Such as bullets.)
+
+B800-BFFF / 5B810-5C00F : Empty, unused space.
+
+5C010 <-> 5E00F - (Bank $2E by $2000)
+-------------------------------------
+
+[Wily Stage 3 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Wily Stage 3
+
+B700-B7FF : Unused. (Random data)
+B800-BFFF / 5D810-5E00F: Ending Scene Graphics (Snowy Hill)
+
+5E010 <-> 6000F - (Bank $2F by $2000)
+-------------------------------------
+
+[Wily Stage 4 Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-B6FF : <Level Data> : Wily Stage 4
+
+B700-B7FF : Unused. (Copy of Snowy Hill Graphics)
+B800-BFFF / 5F810-6000F : Ending Scene Graphics (Train Ride BG - other half)
+
+60010 <-> 6200F - (Bank $30 by $2000)
+-------------------------------------
+
+[Stage Select / Capcom Logo / Stage Intro / Weapon Menu / Copyright Text - Tile Assemy and Screen Data]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-A3FF : 16x16 Tile - 8x8 Tile Assembly Data
+A400-A4FF : 16x16 Tile - Palette and Substance Data
+A500-A8FF : 32x32 Tile - 16x16 Tile Assembly Data
+A900-B0FF : Screen Preset - 32x32 Tile Assembly Data (Space for $20 Screen Presets)
+  AB00-B0FF : Unused.
+
+B100-B2FF : Unused random data?
+
+B500-B505 : Screen Preset Layout. This is used.
+B530-B531 : Stage Layout (Not used)
+
+B550-B551 : Stage Part : Stage BG Palette Set (Not used)
+B560-B561 : Stage Part : Scroll Graphics Load ID (not used)
+
+	Note : The Copyright screen, as well as parts of the intro, load Primary
+	Scroll GFX #$55. You can change this value at 36E5F
+
+B590-B5A3 : Copy of Rockman 4 title screen palette set. Never used.
+
+(From B300 to B7FF there seems to be just junky expect for the above data.)
+
+B800-BFFF / 61810-6200F : Wily Stage 3 Graphics
+
+62010 <-> 6400F - (Bank $31 by $2000)
+-------------------------------------
+
+[Weapn Get / Password / Title Screen - Tile Assemy and Screen Data]
+
+MEMORY AREA: $A000-$BFFF
+
+AA00-90FF : Unused.
+
+B100-B7FF : Copy of Wily Stage 3 Graphics, bank's stage data layered above. (The real tiles are elsewhere.)
+
+B590-B5A3 : Some palette set. Never used.
+
+B800-BFFF / 63810-6400F : Blank Tiles. However, this is loaded at the bottom half portion of BG Tiles for
+	Wily Stage 3.
+
+64010 <-> 6600F - (Bank $32 by $2000)
+-------------------------------------
+
+[Cossack Stage Map / Wily Saucer Scene / Wily Stage Map - Tile Assemy and Screen Data]
+
+MEMORY AREA: $A000-$BFFF
+
+AA00-B0FF : Unused.
+
+B590-B5A3 : Black palette set. Never used.
+
+B800-BFFF / 65810-6600F : Wily Stage 3 Wily Battle BG Graphics
+
+66010 <-> 6800F - (Bank $33 by $2000)
+-------------------------------------
+
+[Intro Scene - Tile Assemy and Screen Data]
+
+MEMORY AREA: $A000-$BFFF
+
+B590-B5A3 : A unused copy of Bright Man Stage's 1st Palette Set resides here, for whatever reason. :)
+
+B5A4-B7FF : Unused data.
+
+B800-BFFF / 67810-6800F: Wily Stage 3 Wily Battle BG Graphics (for second form?)
+
+68010 <-> 6A00F - (Bank $34 by $2000)
+-------------------------------------
+
+[Ending Scene - Tile Assemy and Screen Data]
+
+MEMORY AREA: $A000-$BFFF
+
+B590-B5A3 : Another unused copy of Bright Man Stage's 1st Palette Set resides here, for whatever reason. :)
+
+B700-BFFF : Unused random data.
+
+6A010 <-> 6C00F (Bank $35 by $2000)
+-----------------------------------
+
+[Object ASM Bank #1]
+
+MEMORY AREA: $A000-$BFFF
+
+A000-A02C : Cossack Defeated Scene - Dr.Wily - Object ASM (Oject ID $A5)
+
+A02D-A33F : Wily Stage 1 Boss - eyes - Object ASM (Object ID $A6)
+
+A340-A429 : (Tables, probably used by Wily Stage 1 Boss)
+
+A42A-A486 : Object ASM - Wily Stage 1 Boss - Metools (Object ID $AA)
+A487-
+
+A797-> : Warp Object ASM (Object ID $B3)
+
+A7F9 : Boss Init Object ASM
+
+	A862 / 6A872 : Sound effect ID to play when boss charges energy
+
+	A89F / 6A8AF : Load stage ID in Y. If it's a castle stage, load in Y $AB (Wily 
+	       Stage 3 Warp pointer. Uses table A8D4
+
+	A8AC-A8B3 / 6A8BC-6A8C3 : Boss Sprite ID to set at beginning of boss battle, for each stage.
+	A8B4-A8BB / 6A8C4-6A8CB : Robot Master enters chamber - Vertical Floor Hit Detection ID
+
+	A8BC / 6A8CC : Contains the Object ID of the boss, indexed by the Stage ID
+
+	A8C4 / 6A8D4 : Contains the Sprite ID of the boss, indexed by the stage ID
+
+	A8CC / 6A8DC : Contains the S&S pointer of the boss, indexed by the stage ID
+
+	A8D4 / 6A8E4 : A table used by A89F if in a castle stage (??? don't know more)
+
+	A8DE / 6A8EE : Contains the starting horizontal speed low of the boss, indexed by the stage ID
+
+	A8E6 / 6A8F6 : Contains the starting horizontal speed high of the boss, indexed by the stage ID
+
+A8EE : Object ASM (unknown)
+
+A971-A9B5 : Cossack Defeated Scene - Kalinka - Object ASM (Oject ID $A3)
+
+A9B6-AA51 : Cossack Defeated Scene - Protoman - Object ASM (Object ID $A4)
+
+AA52-AC12 : Wily Stage 3 Battle (Object ID $BC)
+
+	ABA6-AC12 : Subroutine called from ADD6
+
+AC13-AC40 : Wily Stage 3 Battle - Shots - Object ASM (Object ID $BF)
+
+AC41-ADD5 : Object ID $C0 ASM (Wily Stage 3 Battle something)
+
+ADD6-AE7B : Object ASM - Handler when Wily battle finished in Wily Stage 3. (Object ID $27) 
+	ADD6 : Main Entry Point
+	AE16 : 2nd Entry Point
+	AE4F : 3rd Entry Point
+	AE61 : 4th Entry Point
+
+AE7C-AEDB : Subroutine - Set explosions and mute sound when boss dies.
+  Called by ADD6
+  Called by B2EB
+  AE81 : Called as sub by B29E
+
+  AF94-AFD3 : Data used by AE7C.
+
+AFD4 : Object ASM executed when boss dies.
+
+  B0F0 : Jumped to from ASM in B0F4
+B0F4-B17B : ObjASM of Object ID $4D and Object ID $2A
+
+  B188-> : Table
+  B213-> : Table
+
+B29E-B2EA : Object ASM - Cossack stage 3 boss - Handler - Initialize 2nd Cockroach Twin (Object ID $49)
+
+B2EB-B32B : Object ASM - Cossack stage 3 boss - Handler - Cockroach twins defeated (Object ID $4A)
+	B2EB : Main Entry Point
+	B2FD : 2nd Entry Point
+	B313 : 3rd Entry Point
+
+B3FD : "Shuffled Blocks" Object ASM. (Object ID $C3)
+  B423 : Alternate entry point
+
+B480-B4C2 / 6B490-6B4D2 : Cossack Stage 3 Boss - Nametable writes - VRAM buffer source.
+
+  B4C3-B4C4 : Screen: Block data byte pointer into B4C5
+  
+  B4C5-B4EA : Block data.
+
+B4EB-B614 : Wily Stage 4 Battle ASM (Object ID $C4)
+B615-B696 : Wily Stage 4 battle - Charged Shot ASM (Object ID $C5)
+
+B934-BFFF : Unused random data.
+
+6C010 <-> 7000F - (Bank $36 <-> $37 by $2000)
+---------------------------------------------
+
+[Sprite Bank 4 (Many enemies, pickups, and more.)]
+
+MEMORY AREA: $8000-$BFFF
+
+8ACC-6ADF / 6CADC-6CAEF : Tile Usage: E-Tank
+
+6DD0C : Coordinate: E-Tank AND Ring Man Rainbow Bars.
+
+6F18E-6F191 : Animation - Smal Life Energy.
+6F19D-6F1A0 : Animation - E-Tank
+6F1C5-6F1C9 : Animation -Ring Man Rainbow Bars. 
+
+B4EA-B7FF / 6F4FA-6F80F : Unused space. (random bytes) 
+
+6F810-????? : Tile Usage - Address Table Low
+6FA10-????? : Tile Usage - Address Table High
+6FC10 : Coordinate Data - Address Table Low
+6FD10 : Coordinate Data - Address Table High
+6FE10-????? : Animation - Address Table Low
+6FF10-????? : Animation - Address Table High
+
+Adjust Value : 64010
+
+Tile Usage ID's:
+AB : E-Tank (Anim 1)
+AC : E-Tank (Anim 2)
+
+Coordinate ID's:
+2F : Smal Energy Capsule
+
+70010 <-> 7200F (Bank $38 by $2000)
+-----------------------------------
+
+[Object ASM Bank #2 (Boss ASM) / Enemy init handle Bank]
+
+Note: This bank can be loaded into either memory range $8000-$9FFF and $A000-$BFFF,
+depending on what it is being used for.
+
+MEMORY AREA: $8000-$9FFF
+
+8000 : Entry Point from Game Loop - Check for Enemies to Init.
+
+810B : Read stage Enemy data, Set up Object and Sprite registers.
+
+817F-820E / 7018F-7021E : 528() flags to set for each Enemy ID
+820F-829E / 7021F-702AE : Object ID to put for stages enemies and items, indexed by Enemy ID
+829F-832E / 702AF-7033E : 408() flags to set for each Enemy ID (Substance and Shape)
+832F-83BE / 7033F-703CE : Sprite ID to put for stages enemies and items, indexed by Enemy ID
+
+83BF-844E / 703CF-7045E : Enemy HP for each Enemy ID
+844F-84DE / 7045F-> : Initial speed setting for each Enemy ID. Value is an index two other tables
+			telling the real speed low and highs. (84DF and 84E6)
+
+84DF-84E5 : Object Speed Setting - Low
+84E6-84EC : Object Speed Setting - High
+
+84ED-851C : Effect Sprite - 4-Color Quad Palette Index Byte
+851D-854C : Effect Sprite - Palette Anim ID or 4-color Palette
+	(if >= $80, its a Palette Animation ID, else its a 4-byte block index into 854D.
+854D-85A8 : Effect Sprite - Palette Sets (4 bytes for each set, Omni-BG Color + 3 colors to load into chosen 4-Color quad.)
+
+85A9-87FF : Unused random data.
+
+MEMORY AREA: $A000-$BFFF
+
+[Skull Man's ASM: A800-AA69]
+
+[Ring Man's ASM: AA6A-AD27]
+
+Object Memory:
+$468,X (Private mem 1) : Status
+	1E: Walk?
+
+AA6A : First Entry Point.
+
+Datas:
+	AAB6 / 70AC6 : Delay before next movement - after shooting first Ring Boomerang.
+
+ABEC-AC06 : Subroutine - Check if there's two Ring Boomerangs in air.
+
+AC6C-AD27 : Ring Man's Ring Boomerang ASM (Object ID $76)
+
+[Dust Man's ASM]
+
+AD28-AE41 (for the end, there may be a table after, but it's the end of the AI)
+AD28 : Main Entry Point.
+ADD6 : Entry Point
+
+[Drill Man's ASM: B045-B32F]
+
+  B2E2 : Object ASM (Object ID $82)
+
+[Bright Man's ASM]
+
+B541 : Main Entry Point? (Wait for delay)
+B58E : Entry Point - Mode 2
+B5DA : Entry Point - Bright Man Shoots.
+B5F6 : Continue Point - Bright Man Shoots.
+
+716D8 : Bright Man Modes
+	35 : Jump
+	37 : Flash with Lightbulb
+	38 : Shoot
+
+[Pharaoh Man's ASM: B330-B53B / 71340-7154B]
+	B330-B4FD / 71340-7150D	Pharaoh Man ASM first entry point
+		B387		Charging Pharaoh Shot entry point
+		B33A		Load next AI from Y (going from 00 to 02) entry point
+		B3C9		Jump on Mega Man entry point
+		B3F8		Manage the jumps once parameters are set (note:
+				big jump parameters are set at $B3C9, but the
+				two small jumps parameters are set when setting
+				the new AI at $B33A. This just execute a jump with the given
+				parameters).
+	B4FE-B52A / 7150E-7153A	Pharaoh Man's table (in function of a value from a AI pointer,
+			        AI pointer, depending on what to do, is a value from 00 to 02,
+				when we load an ASM with this pointer, we load all those datas.)
+		B516-B518 / 71526-71528 : Sprite ID
+		B519-B51B / 71529-7152B : Low ASM
+		B51C-B51E / 7152C-7152E : High ASM
+		B51F-B521 / 7152F-71531 : Vertical Speed Low
+		B522-B524 / 71532-71534 : Vertical Speed High
+		B525-B527 / 71535-71537 : Counter until the Small Pharaoh Shot is thrown when 
+					  in air
+		B528-B52A / 71538-7153A : Number of jumps to do
+	B52B-B52D / 7153B-7153D	Pharaoh Shot ASM
+	B52E-B53B / 7153E-7154B	Normal  Shot ASM
+
+[Common Boss ASM]
+
+B71E-B743 : Return a Y used to pick in a table the next action. Start from
+	    Y 0, until y = probably?? max value from action table. To give a randomize
+	    feeling, actions are in a table
+
+[Toad Man's ASM]
+
+B747 : Toad Man's ASM Start
+B7DA : Other Entry Point
+
+BB9B-BBF3 / 71BAB-71C03 : Seemingly unused ASM.. hmm.
+
+[Cockroach Twins]
+
+BC71 : Subroutine - Draw Hatch opening up
+BCDA : Subroutine - Draw Hatch closing
+
+BD43-BD4D / 71D53 : Cockroach Twins : Hatch Open/Close Buffer Template
+BD4E : Cockroach Twins : Hatch tile preset pointer
+BD56-BD61 : Cockroach Twins : Hatch tile presets
+
+BD62-BFFF : Unused random data.
+
+72010 <-> 7400F (Bank $39 by $2000)
+-----------------------------------
+
+MEMORY AREA: $8000-$9FFF
+
+[Sequence]
+
+8000 : Entry Point - Startup ($800C)
+8003 : Entry Point - Handle Return from Stage Clear / Game Over ($8C7C)
+8006 : Entry Point - Level Init ($85AD)
+8009 : Entry Point - Debug Menu!!! ($9A28)
+
+800C-> : Startup ASM
+
+8022 : Execute Point - Copyright Screen Wait
+
+[Title Screen]
+
+803A : Execute Point - Entering Title Screen
+
+804D-8051 : Check if a menu was selected. If so, go to $808C.
+8053-8057 : Was a button pushed to make cursor move? If no, go to 8070, which goes to $FF1C.
+8059-806D : Handle cursor movement.
+
+809D : Execution Point - "Press Start" Selected
+	This is where it jumps back after selecting "Stage Select" on the Password Screen.
+
+[Stage Select / Castle Stage Intro's]
+
+80E7 : Execution Point - Level ID loaded to $22
+
+80FE : Execute Point - Entering Cossack / Wily Castle Intro Scene Start
+	Here's some slight interesting ASM: It will check here if the Cossack Stages
+	are cleared, and will jump to $83E8 in that case. However, the
+	JMP $83E8 is never executed through the game.
+	When doing the Wily Stage Intro, the game jumps
+	to $83E8 from elsewhere. (not sure where).
+
+8107-8219 : Cossack Stage Intro Code
+
+821A-8236 : Cossack and Wily Stage Intro Code - Subroutine
+
+8237-82FE : Stage Select Loop - Cursor Movement and Blinking Handler
+  82EA-82FB : Set cursor sprites to blank tile.
+
+
+82FF-833B : Stage Select - Cossack Portrait Exception
+	When all regular stages are cleared, this routine takes care of
+	doing the slight palette blink and drawing cossack's portrait onto the
+	stage select screen, when the Cossack stages can be played.
+
+833C-83E7 : Cossack Stage Intro Code - After first stage clear. 
+
+83E8-8494 : Wily Stage Intro Code
+
+8495-85AC : Common Screen Handler (Arguments: $10 = ID, $2A = ??)
+	Returns after palette is faded up.
+
+85AD-8626 : Huge RAM Clear Routine - Used by Common Screen Handler, Wily Stage Intro code and Cossack Stage Intro code (833C) and more.
+	Called when gameplay starts. (from C555)
+
+8627-> : Cossack/Wily Stage Map Sub (8107 & 833C) (Draw sprites of past path)
+866B-> : Cossack/Wily Stage Map Sub (8107 & 833C) (Draw sprites of next path)
+86B7-> : Cossack/Wily Stage Map Sub (8107 & 833C) (Animate destination point)
+
+872E-884D / 7273E-7285D : Common Screen Palettes ($20 bytes for each ID)
+  7273E-7275D : Capcom Logo Palettes
+  7275E-7277D : Title Screen Palettes
+  878E-87AD / 7277E-7279D : Stage Select Palettes
+  7279E-727BD : Copyright Palette
+
+  87AE-87BD : Cossack Stage Intro - Some Palette
+  87CE-87ED : Cossack Stage Intro - Darkened Down Background Palette (?)
+
+  880E-882D : Wily Stage Intro palette - dark
+  882E : Wily Stage Intro palette - bright
+
+884E-> : Common Screen ID: Screen Bank and Primary Graphics Load ID (Seems so)
+
+8856 - 8859 : Common Screen sprite data offset table - Low
+	8857 / 72867: Title Screen (A1)
+885A - 885D : Common Screen sprite data offset table - High
+	885B / 7286B: Title Screen (88)
+
+885E-8866 / 7286E-72876 : Stage Select : Base Sprite Y coordinate for each selection.
+8867-886F / 72877-7287F : Stage Select : Base Sprite X coordinate for each selection.
+8870-8878 / 72880-72888 : Stage Select : Stage ID for each selection.
+
+8879-887A-> : Common Screen: Sound ID
+887D : Cossack Portrait Nametable Data
+
+889F-88A0 : Data Belonging to 821A Sub. (Blink palette colors)
+
+88A1-88A5 : Title Screen Sprite Data.
+
+88BF-88D7 / 728CF-728E7 (18) : Stage Select - Selection Window Sprite Data
+
+88D8-88F7 : Cossack Portrait Sprite Data
+88F8-8997 : Cossack Stage Intro - Sprite Data
+8998-89B7 : Cossack Stage Intro - Path Sprite Data
+89B8 : 
+89DF-> : Wily Stage Intro - sprite data
+
+8A0C-8B52 : Cossack/Wily Stage Intro : Past Path Sprite Data
+
+8B53 : Cossack/Wily Stage Intro : Past Path Sprite Data - Low
+8B5B : Cossack/Wily Stage Intro : Past Path Sprite Data - High
+
+[Stage Select Screen Data]
+
+Data:
+8B63-8C3E / 72B73-72C4E : Portrait Sprite Data
+  8B63-8B8F / 72B73-72B9F : Bright Man
+  8B90-8BB8 / 72BA0-72BC8 : Toad Man
+  8BB9-8BE1 / 72BC9-72BF1 : Drill Man
+  8BE2-8BEA / 72BF2-72BFA : Pharaoh Man
+  8BEB-8C07 / 72BFB-72C17 : Ring Man
+  8C08-8C10 / 72C18-72C20 : Dust Man
+  8C11-8C2D / 72C21-72C3D : Dive Man
+  8C2E-8C3E / 72C3E-72C4E : Skull Man
+
+8C3F-8C46 / 72C4F-72C56 : Portrait Sprite Data - Low Offset for each Boss
+8C47-8C4E / 72C57-72C5E : Portrait Sprite Data - High Offset for each Boss
+
+8C4F - 8C6B : VRAM Buffer Template for a blank Boss portrait (used for
+              all stages which are cleared. The stage select screen
+              graphics is over-written with a 4x4 tile blank box for
+              each portrait area. This is just a template, it overwrites
+              all the VRAM Address bytes with specific information
+              before its written to Name Table VRAM.)
+8C6C - 8C73 : Specific VRAM Address to blank out portrait - Low VRAM Address for each Boss
+8C74 - 8C7B : Specific VRAM Address to blank out portrait - High VRAM Address for each Boss
+
+8C7C : Execute Point - Boss defeated, MM warps out of level.
+
+8CBC : Point - Init Weapon Get screen.
+
+8E78 : Execute Point - Weapon Get Done, go to Password Screen.
+
+8E8F : Jumped to from Game Over.
+
+8EA3 : Password Screen (Stage Clear) Selection Loop
+
+8ECC : Password Screen (Stage Clear) - Pressed A / Start, handling selection.
+
+8EDE-8EF6 : Sub - Refill Weapon Energy. (Branched to from Game Over)
+
+8EF7-8F48 : Password Screen (Game Over) ASM
+  8F3D : Password Screen Loop, if Game Over happened in Cossack or Wily stage.
+
+8F49-8F92 : Weapon Get / Password Screen Subroutine - Init graphics, password screen palette, put text.
+
+8F93-> : Stage Introduction ASM Subroutine. Called when regular stage is selected.
+
+	902D-9048 : Special code to create Ring Man's Sparkling Helmet
+
+	For the animated palette in the 3 last background palettes,
+	here is how the animated palette is calculated, directly in an ASM,
+	(which means, if you want to change the loaded palettes, change the ASM) :
+		Palette 1 : ((((stage ID)) * 2 + (stage ID)) + 92)
+			Then, remove bit 7, which is there to say that the palette is
+			animated. Palette 1 value result is in the accumulator at
+			$8FF6 ($8FF6:9D F0 06  STA $06F0,X)
+
+			Here are the results if you calculate them
+				Bright Man : 92
+				Toad Man : 95
+				Drill Man : 98
+				Pharaoh Man : 9B
+				Ring Man : 9E
+				Dust Man : A1
+				Dive Man : A4
+				Skull Man : A7
+
+		Palette 2 : (Palette 1) + 1
+		Palette 3 : (Palette 2) + 1
+
+  7303F : Stage ID compare with #4 (?)
+
+  909C : Stage Introduction Animation Loop
+
+90C7-9253-> : Wily Saucer sequence
+	Jumps to 83E8 at end.
+
+9254-9271 : Sub of Wily Saucer Sequence (Move stars)
+
+9272-9280 : Sub of Wily Saucer Sequence (Arguments: A = # of frames to update sprites and do delay.)
+
+9281-92C8 : Text Write Common Routine (Used by Boss Intro, Weapon Get)
+
+92C9-92DE : Write Password Screen Text String to screen. (Subroutine of 8F49, 8EF7, and possibly more.)
+	Y register is loaded with text string id. (See 9529 and 952E.)
+92DF-92FE : Weapon Get Palette
+
+92FF-937E / 7330F-7338E : Weapon Get - Megaman Portrait Palettes
+  92FF-930E : Flash Stopper (Bright Man)
+  930F-931E : Rain Flush (Toad Man)
+  931F-932E / 7332F-7333E : Drill Bomb (Drill Man)
+  932F-933E : Pharaoh Shot (Pharaoh Man)
+  933F-934E : Ring Boomerang (Ring Man)
+  934F-935E : Dust Crusher (Dust Man)
+  935F-936E : Dive Missile (Dive Man)
+  936F-937E / 7337F-7338E : Skull Barrier (Skull Man)
+
+937F-938E / 7338F-7339E : Weapon Get : Rush Adaptor Spr Palette
+938F / 7339F : Weapon Get : Got Rush Adaptor Blink : Color 1 ($16)
+9390 / 733A0 : Weapon Get : Got Rush Adaptor Blink : Color 2 ($0F)
+9391-93B0 / 733A1-733C0 : Wily's Saucer Sequence - Palette
+
+[Weapon Get Data]
+
+93B1-93B8 : Weapon Get : Index of weapon achieved for each stage id index.
+
+93B9-93D4 : Weapon Get - VRAM Buffer to clear old "You Got" letters.
+
+93D5-94D8 / 733E5-73456 : Weapon Get / Boss Introduction Text Data
+	Datas are as follow : -Determine Height and???-X Coordinate of the First Letter (the others are written after this one)-Then all the tiles to pick, 	ending with "FF"
+	Note : This means the palette to write the letters is probably picked up by the ASM.
+
+94D9-94F0 - 734E9-73500 : Weapon Get / Boss Introduction Text Offset - Low
+94F1-9508 - 73501-73518 : Weapon Get / Boss Introduction Text Offset - High
+
+  733E5 - 93D5 : $00 = "You Got"
+  733EF - 93DF : $01 = "Flash Stopper"
+  733FF - 93EF : $02 = "Rain Flush"
+  7340C - 93FC : $03 = "Drill Bomb"
+  73419 - 9409 : $04 = "Pharaoh Shot"
+  $05 = "Ring Boomerang"
+  $06 = "Dust Crusher"
+  $07 = "Dive Missile"
+  $08 = "Skull Barrier"
+  $09 = "Rush Jet"
+  734C9 - 94B9 : $0A = "Rush Marine"
+
+  $0B = "Bright Man"
+  $0C = "Toad Man"
+  $0D = "Drill Man"
+  $0E = "Pharaoh Man"
+  $0F = "Ring Man"
+  734BD - 94AD : $10 = "Dust Man"
+  $11 = "Dive Man"
+  $12 = "Skull Man"
+
+  734DF- 734E8 : 94CF-94D8 : $13 = "Adaptor"
+
+  $14 = "Pharaoh Shot"
+  $15 = "Ring Boomerang"
+  $16 = "Dust Crusher"
+  73448-73456 - 9438-9446 : $17 = "Dive Missile"
+
+[Password Screen Data]
+
+9509-9528 : Password Screen Palette
+
+9529-952D : Password Screen - Text data - Byte Pointer table
+
+952E-9540 : Password Screen Text data (VRAM Buffer source) 0 - Blank text in text window.
+9541-9567 : Password Screen Text data (VRAM Buffer source) 1 - "Stage select / Continue"
+9568-9575 : Password Screen Text data (VRAM Buffer source) 2 - "Continue" only.
+9576-9588 : Password Screen Text data (VRAM Buffer source) 3 - "Pass word error".
+9589-9595 : Password Screen Text data (VRAM Buffer source) 4 - "Game Over".
+
+[Stage Intro Data]
+
+
+9596-9615 / 735A6-73625 : Stage Introduction Screen - Initial BG Palettes
+	Table read with Y, Y is Stage ID * 16
+
+9616-961D / 73626-7362D : Stage Introduction - Sprite Palette Color $0 - $7
+	Those remains for every stage selected.
+
+961E-965D / 7362E-7366D : Stage Introduction - Sprite Palettes (Color $8 - $F)
+	Table read with Y, Y is Stage ID * 8
+	7362E-73635 : Palette for Bright Man
+	73636-7363D : Palette for Toad Man
+	7363E-73645 : Palette for Drill Man
+	73646-73649 : Palette for Pharaoh Man (P1) BODY (when selected)
+	7364A-7364D : Palette for Pharaoh Man (P2) JEWEL (when selected)
+	7364E-73655 : Palette for Ring Man
+	73656-73659 : Palette for Dust Man (P1) VACCUM (when selected)
+	7365A-7365D : Palette for Dust Man (P2) BODY (when selected)
+	73666-7366D : Palette for Skull Man
+
+
+[Misc Data]
+
+965E-9671 : Wily Saucer Sequence - Stars Sprite data.
+
+[Password Screen]
+
+9672-9839 : Password Screen (Password Enter) ASM
+  968D : Password entering loop
+  9722 : Point - It jumps back here after password error
+  972D : Password decoder / check
+  9772 : Jump to 981D
+  978E : Password check loop
+  97E1 : Point - Password OK
+  97FE : jump to stage select.
+  9801-981C : Password check subroutine
+  981D-9839 : Point - Password error
+
+983A-9885 : Password enter loop subroutine
+
+9886-98F5 : Password Generator ASM
+
+98FA-9999 : Password Screen Sprite RAM setup
+
+999A : Password Screen cursor Y coordinate data
+99A1 : Password Screen cursor X coordinate data
+
+99A8-99A9 : Password screen cursor add table 
+99AA-99AE : Password Table A
+	Fields which cannot have dot in it
+99AF-99B9 : Password Table B
+	Sprite DMA byte index to 11 fields in the
+	password, only 1 of the fields can
+	have a dot in them.
+
+99BA : Password table C
+
+99CE-> : Password Table D
+
+99E2-> : Password Table E
+
+9A1E-9A27 : Password generator - Weapon energy memory index 
+
+9A28-9B2F : Debug Menu ASM
+
+9B30-9B74 : Debug Menu Subroutine
+
+9B75-9B7C : Debug Menu Sprite Palette Data
+9B7D-9B84 : Debug Menu Sprite Palette Data
+
+9B85-9C5D : Debug Menu Sprite RAM Data
+9C5E -> ?? Data
+
+73C86-7400F : Unused random data.
+
+74010 <-> 7800F (Bank $3A <-> $3B by $2000)
+-------------------------------------------
+
+[Object ASM Bank #3 and #4 - Enemies / Weapons / Items / Pickups.]
+
+MEMORY AREA: $8000-$BFFF
+
+Routines between addresses $8000 to $8823 can be called from any of the Object ASM banks,
+as this bank always is loaded into $8000-$9FFF regardless of where the Object ASM is.
+
+74076 : Stage ID compare with #$04 (Rainbow bars related?)
+
+Code:
+
+it's in the middle of a function...
+
+8016-802B / 74026-7403B : Check for every $0300 slot if there is an object ID, and if
+there is no ASM that was set when creating the object, load him an ASM with his object
+ID from table $8683 and $8753. So just putting an object ID in a slot, with a unique
+object ID is enough to have the enemy created.
+NOTE : SEEMS TO NOT WORK WITH EVERY OBJECT ID... BUT WORK WITH SOME THINGS
+
+805A-8096 : Check if invincibility counter is off, else, RTS. Then, if going on, look for $805E explained at the end of this document.
+
+80A7-80DA : Flash Stopper-specific code.
+		Note : If you delete Flash Stopper and want to use it, make sure to change at $80A3 the
+		code which allows it to come here when weapon is Time Stopper.
+80DB-8107 : Rain Flush-specific code.
+
+8110 : Handle Weapon Particle Collition?
+	This is executed whenever a weapon/gadget hits another object.
+	$8162 : Weapon is going to be deflected.
+
+81BB-81C8 : Check if Mega Man is already in hurt state. If so, go on to $81C9. Code comes back together at $81C9.
+	81C1 : Check if there is a collision with Mega Man. If so, call $81CC because Mega Man is hit.
+
+81CC : Subtract MM's HP when MM gets hit by object. (Subroutine, can be called from Object ASM)
+
+823F-> : Routine, MM is defeated by enemies/hit by spikes.
+	8243 : Jump-in point if MM is hit by spikes.
+
+  Data in ASM:
+    7426E : Delay before gameplay refreshes - (death by spikes) - Low
+    74273 : Delay before gameplay refreshes - (death by spikes) - High
+
+82A4-83D2 / 742B4-743E2 : Sub - Subract Enemy HP, remove if no HP left, 
+	check if remove weapon object or not, etc. (Enemy is Hit by Particle)
+	There are special ASM for Dust Crusher, Drill Bomb, Ring Boomerang, Wire Adaptor,
+	Charged Shot and Charged Pharaoh Shot. The rest are managed the same way.
+
+	833A-834D : Special exception ASM for Cossack Stage 4, battle with Cossack.
+		Ensures that object HP's are kept to a value of #2 or more.
+
+	8373-8380 : Since the life of Cossack Stage 3 boss is for each, half
+	the life of a complete life bar, we must still draw the complete
+	life bar. So the life bar with those boss is #$0E. When we reach this
+	place, we add to it #$0E so it becomes a complete life bar (the graphic).
+
+8413-84E2 / 74423-744F2 : Damage Objects does to Megaman, for each Object ID
+84E3-85B2 / 744F3-745C2 : Object ID to drop when Object dead (?) (If more than 0), for each Object ID.
+85B3-8682 / 745C3-74692 : Enemy ASM Bank for each Object ID
+8683-8752 / 74693-74762 : Enemy ASM Address Low for each Object ID
+8753-8822 / 74763-74832 : Enemy ASM Address High for each Object ID
+
+
+-- I think, for all the ASM beyond this point, bank $3B ($76010-7800F) is assumed switched into $A000-$BFFF. However, for the ASM before this point, the bank switched into $A000-$BFFF depends. --
+
+8823 : Single RTS (No Object ASM)
+	Object ID's pointing here: $80, $81
+8824 : Single RTS (No Object ASM) - Entry Point of Object ID $67
+	Object ID's pointing here: $26, $67
+
+8825-884A / 74835-7485A : Buster Object ASM (Object ID $02)
+	8825 : Entry Point
+
+884B-88BC : Weapon ObjASM Subroutine - Handle "Shootable" block.
+	(Called as Subroutine of Weapon Object ASM)
+	Check if weapon hits Shootable Block, if so:
+	Draw blank tiles where block was, and make explosion sprite at the same point.
+	Scanline Effect ID ($F0) must be set to #4 for this to do anything.
+
+88BD-> Buster Object ASM - Speed Low Byte 
+88C3-> Buster Object ASM - Speed High Byte 
+
+88C9-88DD : Deflected Weapon Object ASM (Object ID $03)
+	88C9 : Entry Point
+	
+88DE-> Rush Items Object ASM (Object ID $04)
+	88DE-88F2 : Main Rush's ASM
+	88F3-881A : Rush Coil First Own Object ASM
+	891A-894A : Rush Jet First Own Object ASM
+	894B-8972 : Rush Marine First Own Object ASM
+
+	8973-8995 : Rush is dismissed (part 1)
+	8996-89E2 : Rush Item landed
+	89E3-8A36 : Rush Items Waiting for something to happen.
+		8A16-8A36 : Mega Man is on Rush Item.
+
+	8A37-8A5C : Mega Man on Rush Coil.
+	8A5D-8A85 : Rush is dismissed (part 2)
+	8A86-8B1C / 74A96-74B2C : Rush Jet moving. As soon as Mega Man was once on Rush Jet,
+		it will always be there now.
+
+	-----------------------------------------------------------------------------------------------------------------
+	All the following tables are read with the Y set from $A0. So they go from #$01 to #$03, which
+	means that the address where is the table is never used.
+
+		example, in the code, the table with values from $8B1D-8B1F is loaded at $8B1C,Y.
+
+	8B1D-8B1F / 74B2D-74B2F : Rush Items sprite to set right after landing.
+	8B20-8B22 / 74B30-74B32 : Rush Items $0408 Flag to set when he has landed.
+			$8B23-$8B25 / 74B33-74B35
+	8B23-8B25 / 74B33-74B35	: Rush Items Sprite Flag values wich it adds to the Sprite Flag already in position.
+	8B26-8B28 / 74B36-74B38 : Rush Items Address Table - Low (Entry Point)
+	8B29-8B2B / 74B39-74B2B : Rush Items Address Table - High (Entry Point)
+
+	The 2 followings are address tables. ASM for when driving Rush Jet/Marine
+	The one for Rush Coil contains #$00 which are used to know when Rush item is current item.
+	This is done this way, so if item is Rush Coil, they make a BEQ to send him somewhere else,
+	and for the others they already loaded an ASM value.
+
+	8B2C-8B2E / 74B3C-74B3E : Rush Items Address Table - Low
+	8B2F-8B31 / 74B3F-74B41 : Rush Items Address Table - High
+
+
+	For the following table, those belong to Rush Jet, and Y = #$00 is possible. So for example,
+	table $8B32 is loaded in the code as $8B32,Y
+
+	8B32-8B35 / 74B42-74B45 : Horizontal Speed Low
+	8B36-8B39 / 74B46-74B49 : Horizontal Speed High
+	8B3A-8B3D / 74B4A-74B4D : Vertical Speed Low
+	8B3E-8B41 / 74B4E-74B51 : Vertical Speed High
+	-----------------------------------------------------------------------------------------------------------------
+	
+
+
+
+	8B42-8B94 : Mega Man in Rush Marine. Set initial properties, then set ASM at $8B95.
+	8B95-8BA2 : Mega Man in Rush Marine ASM.
+
+
+	Memory usage:
+	=============
+	468-47F : Object ASM Private Memory 1	For Rush Coil, Marine and Jet, this is Low counter untile Rush leaves
+						when waiting for contact with Mega Man.
+
+	480-497 : Object ASM Private Memory 2	For Rush Coil, Marine and Jet, this is High counter untile Rush leaves
+						when waiting for contact with Mega Man.
+
+	4B0-4C7 : Object ASM Private Memory 4	For Rush Jet/Marine, used as a counter to decrease their energy.
+
+
+
+8BA3-8BFA Rain Flush (Capsule) Object ASM (Object ID $05)
+	8BA3 : Entry Point
+
+8BFB-8CA3 : Balloon Adaptor Object ASM (Object ID $06)
+
+8CA4-8D8E-> : Dive Missile Object ASM (Object ID $07)
+	8CA4 : Entry Point
+	8D8E-> : Data Table
+
+8D9E-8E30 : Ring Boomerang Object ASM (Object ID $08)
+  8D9E : Initial Entry Point
+  8DBC : Entry Point #2
+  8DD7 : Entry Point #3
+	RTS : Not used by $8E31.
+
+8E31-8E6E : Drill Bomb Object ASM (Object ID $09)
+  8E31 : Entry Point
+	RTS : Not used by $8E6F
+
+8E6F-8ECB : Dust Crusher Object ASM (Object ID $0A)
+  8E6F : Entry Point
+  8ECC-8ECF : Data Table 1 (Sprite ID for the 4 Small Pieces)
+  8ED0-8ED3 : Data Table 1 (Direction bits for the 4 Small Pieces)
+
+8ED4-8F24 : Wire Adaptor Object ASM (Object ID $0B)
+  8ED4 : Entry Point
+
+8F25 : Pharaoh Shot Object ASM (Object ID $0C)
+
+8F40 : Pharaoh Shot (Being Charged) ObjASM (Object ID $0D)
+
+8F9C-> : Table : Substance/Shape bits (Mem 408->) for each Sprite ID (Mem 558)
+	(Used by Pharaoh Shot.) Possibly to update shape difference between smal shot
+	and charged shot.
+
+8FE6 : Single RTS (No Object ASM) - Entry Point of Object ID $0E
+
+8FE7-8FFF : Skull Barrier Object ASM (Object ID $0F)
+	8FE7 : Entry Point
+
+9000-90A1 : Ladybug Copter Object ASM (Object ID $10)
+	9000 : Main Entry Point
+	9063 : 2nd Entry Point
+
+	9073 : Called as Subroutine
+
+90AA-90E9 : Movement Speed Tables - Used by multiple ASM code in same bank.
+
+90EA-90EC : Ladybug Copter - Dropped Propel - Object ASM (Object ID $11)
+
+90ED-91DB : Hover ASM
+	NOTE : RTS NUBT
+
+91DC-91DE : Hover : Bullets shot ASM (Object ID $39)
+
+91DF-93AE : Slinky
+	91DF-934E : Slinky ASM
+	934F-93AE : Slinky Tables
+
+93AF-942A : Desert Scorpion Generator
+	NOTE : RTS UBT
+
+942B-94E5 : Desert Scorpion
+	942B-94DB : Desert Scorpion (Object ID $14) Object ASM start.
+	94DC-94DE : table, use unknown??
+	94DF-94E1 : table, use unknown??
+	94E2-94E5 : Random "dash" time table.
+
+	NOTE : RTS NUBT
+
+94E6-9635 : Grasshoper
+	94E6-95F5 : Grasshoper ASM
+	95F6-9635 : Grasshoper's Tables
+
+	NOTE : RTS NUBT
+
+9636-96A1 : Unused Object ASM (Object ID $17) - Generate Jet Bird (Object ID $18)
+	at random X location, then do nothing.
+	THIS IS USED :	
+	9689-969D : Function used by Jet Bird for Generation of Jet Bird Children.
+
+96A2-9764 : Jet Bird ASM
+
+There is a RTS between them, and it is not used by any of them.
+
+9766-97C2 : Jet Bird Children
+	9766-97AA : Jet Bird Children ASM
+	97AB-97C2 : Jet Bird Children Table
+
+97C3-97D2 / 757D3-757E2 : Tables used by Wall Gun & Jet Bird Children enemy over wall gun
+97D3-97E2 / 757E3-757F2 : Tables used by Jet Bird Children Enemy over wall gun
+97E3-98D4 / 757F3-758E4 : Wall Gun's ASM				NOTE : RTS NUBT
+98D5-9924 / 758E5-75934 : Wall Gun's Tables				NOTE : RTS N
+9925-992A / 75935-7593A : Wall Gun's Bullet ASM				NOTE : RTS N
+
+
+9B07-9B51 / 75B17-75B61 : Whapper's ASM					NOTE : RTS UBT
+9B52-9B55 / 75B62-75B65 : Whapper's Rings object creator's Tables 	NOTE : RTS N
+9B56-9C0E / 75B66-75C1E : Whapper's Rings object creator		NOTE : RTS NUBT
+9C0F-9C14 / 75C1F-75C24 : Whapper's Rings' property Table		NOTE : RTS N
+9C15-9C1A / 75C25-75C2A : Whapper's Rings' property Table		NOTE : RTS N
+9C1B-9C20 / 75C2B-75C30 : Whapper's Rings' property Table		NOTE : RTS N
+9C21-9C26 / 75C31-75C36 : Whapper's Rings' property Table		NOTE : RTS N
+9C27-9C2C / 75C37-75C3C : Whapper's Rings' property Table		NOTE : RTS N
+9C2D-9C32 / 75C3D-75C42 : Whapper's Rings' property Table		NOTE : RTS N
+9C33-9C8D / 75C43-75C9D : Whapper's Ring's ASM				NOTE : RTS NUBT
+
+9C8E-9CA1 : Common routine - Find Object with Object ID equal to memory $00.
+
+9CA2-9D6B : Fly's Code / Object ID 33 / Enemy ID $13
+	9CA2-9D5A : Fly's ASM
+	9D5B-9D68 : Fly's Table
+	9D69-9D6B : Fly's Bullet ASM
+
+9D6C-9E3B : Umbrella Metool's Code / Object ID 35 / Enemy ID $14
+
+9E3C-9E3E : Umbrella Metool's Projectile's Code / Object ID 36 / Enemy ID ???
+
+9E3F-9EE5 / 75E4F-75EF5 : Fireworks Guy's ASM				NOTE : RTS NUBT
+9EE6-9F1C : Fireworks Guy - Object placed when shot - Object ASM - (Object ID $C8)
+
+9F85-9FDE-> : Object ID $82 and $83 ASM (explosion like Drill Bomb)
+
+A0DC-A184 /760EC-76194	Super Ball Machine ASM			NOTE : RTS UBT
+A185-A18C /76195-7619C	Super Ball Machine Tables		NOTE : RTS N
+A18D-A1DD /7619D-761ED	Super Ball Machine's Ball		NOTE : RTS NUBT
+
+A1DE-A222 : Falling Boulder - controller ASM (Object ID $40) (Enemy ID $30)
+A223-A286 : Falling Boulder, small pieces			RTS NUBT
+A287-A2A0 : Falling Boulder Tables
+
+
+A2B9-A3B4 : Eddie						RTS NUBT
+A3B5-A3D4 : Eddie's tables
+
+A436-A46C / 76446-7647C : Weapon deflection if hits from left. Used by Skullmet and 
+	    probably other enemies
+
+A46D-A557 : Totempole
+	A46D-A54C : Totempole's ASM
+		A534-A54C : Totempole jumps
+	A54D-A554 : Totempole's Table
+	A555-A557 : Totempole's Bullet ASM
+
+A558-A6D2 : Metool (Jumping, Walking, Spinning)
+	A558-A68F : Metool (Jumping, Walking, Spinning)
+	A690-A69C : Metool's Table
+	A69B-A6D2 : ??? bullet?? of metool?
+
+A93F-A951 : Water Air Bubble Object ASM (Object ID $66)
+
+AA11-AACB / 76A21-76ADB : Amoeba				NOTE : RTS NUBT
+
+ABD5-AC00 / 76BE5-76C10	: Saturn Bot's ASM
+
+AC29-AC94 : Unused Object ASM..					NOTE : RTS NUBT
+
+AC51-AC94 : Entry Point of Object ID $68 (Unused)
+
+AC95-AD5D / 76CA5-76D6D : Skullmet ASM				NOTE : RTS NUBT
+AD5E-AD69 / 76D6E-76D79 : Skullmet's Tables			NOTE : RTS N
+AD6A-AD6F / 76D7A-76D7F : Skullmet's Bullet ASM			NOTE : RTS N
+
+AD70-ADC2 / 76D80-76DD2	Helipon 1 - Flying
+ADC3-ADF0 / 76DD3-76E00	Helipon 2 - Falling
+ADF1-AE4B / 76E01-76E5B	Helipon 3 - Waiting and shooting
+AE4C-AE4E / 76E5C-76E5E	Helipon's bullet ASM
+AE4F-AF34 / 76E5F-76F44	Piranha ASM
+
+AE4F-AF34 / 76E5F-76F44 : Piranha's ASM
+	AE4F : Waiting to see Mega Man to jump 
+			(if  piranha hits a wall with this entry point, it just can't advance)
+	AE94 : Jump on Mega Man
+	AEFC : Don't know what it's for
+	AF19 : Advance until it sees a wall and turn back, to set entry point back to AE4F
+
+B0D9-B16F / 770E9-7717F : Manta ASM
+B170-B197 / 77180-771A7 : Manta's Tables
+
+B3D9-B42F / 773E9-7743F : Mono-Roader ASM
+
+B430-B597 : Gachappon						NOTE : RTS NUBT
+	B430-B57A : Gachappon's ASM
+	B57B-B58E : Gachappon's Table
+	B58F-B591 : White Bullet's ASM
+	B592-B597 : Red Bullet's ASM
+
+B598-B621 : Pakatto 24
+	B598-B61C / 775A8-7762C : Pakatto 24 ASM		NOTE : RTS NUBT
+	B61D-B61E / 7762D-7762E : Pakatto 24's Tables		NOTE : RTS N
+	B61F-B621 / 7762F-77631 : Pakatto 24's Bullet ASM	NOTE : RTS N
+
+B622-B6DC : Up'n'down
+	B622-B6DC : Up'n'down Controller			NOTE : RTS NUBT
+	B6DD-B6E4 : Up'n'down tables
+
+B6E5-???? : Water Mine
+
+B780 : Part of Spark Spine (Object ID $B7) ASM.
+
+B7C5-B85F / 777D5-7786F : Skull Launcher ASM
+
+B860-B8C3 / 77870-778D3 : Wheel Skull ASM
+
+B8C4-B94D : Spike Box - From both Left and Right - Generator (Object ID's $BD & $CE)
+
+B8E0 / 778F0 : Spike Box (Enemy ID $54) - Delay until new one appears - High
+B8E5 / 778F5 : Spike Box (Enemy ID $54) - Delay until new one appears - Low
+
+B94E-B972 / 7795E:77982 : Spike Box ASM
+
+BB6C-BBC2 : Decide items to drop when enemy dies
+
+BBC3 : ObjASM for Dropped Items (All of them)
+
+  BBD3 : Execution Point - Megaman Reaches Item
+  BBEE : Where we make the jump to the right place, depending on picked up item.
+
+Item:
+	0: Smal Weapon Energy Capsule
+	1: Big Life Energy Capsule
+	2: Smal Life Energy Capsule
+	3: Extra Life
+	4: Big Weapon Energy Capsule
+	This can't be dropped by enemies, but has ASM address in the pickup handler jump table.
+	5: E-Tank
+
+BC01: E-Tank Picked Up ASM
+
+BC11: Big/Small Life Capsule Picked Up ASM
+
+BC15: Big/Small Energy Capsule Picked Up ASM
+
+BC24 : Increase Health/Weapon - Picked up Large Health Capsule
+
+BC44 : Balloon Item (Capsule) Obj-ASM Entry Point
+
+BC4A : Object ASM for Pickups (Object ID $C1)
+	??? and something else which goes on at BC66
+
+BC7A-BC8C : Object ASM - Big Energy Capsule dropped by robot masters in rematch battles. (Object ID $C6)
+
+[Items Dropped when enemy is defeated]
+
+  BC8D-BC91 / 77C9D-77CA1: Chance of item being dropped (00 is lowest, FF is highest...
+	it's appropriate, but it's more complex, see "Tutorial - Object to Drop")
+  BC92-BC96 : Sprite
+  BC97-BC9B : Object Substance and Shape byte ($408())
+  BC9C-BCA0 : Written to Memory 0 ($468()). It's pointer for $F0F8 function.	
+	Low Counter is always #$FF for all.
+
+
+  BCA1-BCA5 : Table which tells how much to refill for each item.
+	Table is read using index Y being sprite ID
+		So table read is $BC87.
+
+  BCA6-BCAB : ASM Pointers for Pickups - Low
+  BCAC-BCB1 : ASM Pointers for Pickups - High
+
+BCB2-BFFF : All unused random data.
+
+78010 <-> 7A00F (Bank $3C by $2000)
+-----------------------------------
+
+MEMORY AREA: $8000-$9FFF
+
+[Megaman Movement ASM / Weapon Menu ASM]
+
+8083 / 78093 : This is here we upgrade $35, which is the counter
+for the charged buster shot. We check the sound and palettes to load...
+Set two CLC there is you want the charged buster to be impossible.
+
+80E3-80F1 / 780F3-78101 : MM Movement ASM Picker : Take Mega Man
+status in $30 as an index, and pick his ASM in 80FA and 810E
+table.
+
+80FA-810D : MM Movement - ASM Address - Low
+810E-8121 : MM Movement - ASM Address - High
+
+==============================
+==============================
+8130-8352 : Status is 00 Start
+==============================
+==============================
+8130 / 78140 : MM Movement - Stand/Walk/Aim AND CHECK OTHER, AS WELL AS JUMP,
+AND SEND TO RIGHT CODE SECTION.
+ONLY COME HERES DIRECTLY IF STATUS IS $30.
+
+8135-813D / 78145-7814D : Check if "A" is pushed. If so,
+go to $813E. It seems, to be here, Mega Man must be on ground.
+
+813E / 7814E : Send here if you want Mega Man to jump. It checks there if
+Mega Man is on Rush Jet? and if down is held (slide). Better to have
+X at 0 if you send here, because it will be used as Mega Man's identifier.
+
+8156 / 78166 : Slide starting code : $8147 sends here if the
+pushed buttons indicate Mega Man is sliding.
+You don't want Mega Man to slide in your game? Put a RTS here!
+
+  81B3 : Toad Man Stage Slide-Dust-Cloud exception -
+  Here it chooses the Sprite ID for the dust cloud when Megaman slides.
+  If at beginning of Toad Man's stage, it picks an alternate sprite.
+
+81DC : Code comes here is Down is pushed. It checks if $46 contains ladder top. If so, set Mega Man status to be #$03
+	(climbing)
+
+826C : Check for Toad Man's stage, create water effect when MM walks.
+82C8 : MM Movement - Jump, Also Subroutine of 8130.
+
+782E3 : Stage ID for which level the "Slippery" Block Type is functional in. Contents is $08 (Cossack Stage 1).
+	1st of 3 checks that need to be changed.
+
+8320-8352 : Come here if Mega Man is on ground. If $30 is not #$00, it means Mega Man fell on ground, so do things
+such as playing "MM hit ground sound".
+============================
+============================
+8130-8352 : Status is 00 End
+============================
+============================
+
+8353-83F1 : MM Movement - 02 - Slide.
+	83D3 : Comes here when Mega Man stop sliding.
+
+83F2-841F : Check collision with solid object (slot $0528). Only called with sliding, since it uses
+	    Mega Man Sliding's shape. !!!new!!! not 100% sure about it. I need to check it more
+		RTS UBT
+	
+8420-84AC? : MM Movement - Ladder ASM Entry Point??
+
+84AD-854C : MM Movement - 04 - In Rush Marine.
+854D-858C : MM Movement - 04 - Rush Marine's Speed Tables.
+
+	NOTE : THOSE TABLE USE TOO MUCH SPACE FOR NOTHING. IT JUST LOAD THE DIRECTION BITS AND LOAD SPEEDS WITH THIS
+
+	854D-855C : Horizontal Speed Low
+	855D-856C : Horizontal Speed High
+	856D-856C : Vertical Speed Low
+	857D-858C : Vertical Speed High
+
+
+858D-85DC : MM Movement - 05 - Using Wire Adaptor.
+
+85DD : MM Movement - 06 - Hit by Object.	(85E9 in Mega Man 4 Dr Cossack Treason)
+	RTS NUBT
+
+865D-86AC : MM Movement - 13 - MM escapes from Wily's Castle (Also Subroutine of 8775.)
+	Called as routine from 8775.
+	RTS UBT
+
+86AD-86CD : MM Movement - 09 - Wait for boss to get ready.
+
+86CE : MM Movement - 0A - "Ready" blink, Warp down.
+
+	8730 : Position at which we start checking if Mega Man hit floor.
+
+8775-87A6 : MM Movement - 11 - Wire/Balloon Item achieved - Wait, then warp out.
+
+87A7-884F : MM Movement - 0B - Boss Defeated - Weapon Get / Warp Out
+
+8850-8894 : MM Movement - 0C - Battle with Cossack - Caught by cranes
+
+8895-8919 : MM Movement - 0D - Cossack Stage 4 - Cossack Defeated
+
+891A-8A6F : MM Movement - 0E - Cossack Stage 4 - Cossack Defeated (Dialogue Handler)
+  891A-89E4 : Main ASM
+  89E5-8A03 : Dialogue $00 Effect
+  8A04-8A5A : Dialogue $01 Effect
+  8A5B-8A69 : Dialogue $02 Effect
+
+  8A6A-8A6C : Dialogue - Special Effect ASM Address - Low
+  8A6D-8A6F : Dialogue - Special Effect ASM Address - High
+
+8A70-8B37 : MM Movement - 0F - Wily Stage 3 Rematch Room Warp
+  8AEC / 78AFC : Song ID to play after Warp (Wily Stage 3)
+  
+  8AF7-8B37 : Subroutine - Special stuff to do if warping to Rematch Room
+
+8B38-8B8C : Routine : Conditional $528 setting (MM sprite bg-priority bit) for Wily Stage 3
+
+8BE5-8C27 : VRAM Buffer Source - Additional Warp at Rematch Room in Wily Stage 3 (Used when warping back from robot master battle)
+
+8C28-> : Data table for 8B38
+8C33-> : Data table for 8B38
+8C3E-> : Data table for 8B38
+
+8C49-8C64 : MM Movement - 10 - Enter boss room - walk a bit forward
+8C65-8CBC : MM Movement - 12 - Wily Stage 4 - Wily defeated.
+
+8CBD-8CCB : Subroutine - Jump to Current Weapon's Init Code
+
+8CCC : Mega Buster Init Code
+	8CF6 : B button is released here. It's either a Full or Incomplete Charged shot.
+	       Counter $35 is compared to #$20 at 8CF2. If it's only a bullet, it goes to $8D59. More than #$20, it
+	       goes on.
+
+8DD5-8E3A / 78DE5-78E4A : Entry Point of Rush Coil / Rush Marine / Rush Jet Code
+	8DFD / 78E0D : If shooting, it comes here.
+
+8E3B-8E9C : Rain Flush Init Code
+
+8E9D-8F16 / 78EAD-78F26 : Entry Point of Wire Item Code. RTS is not used by next ASM.
+
+8F17: Entry Point of Balloon Item Init Code
+	8F17-8F97 Balloon Item - Init Code
+	IMPORTANT NOTE : RTS at 8F97 is used by next function.
+
+8F98-9044 : Entry Point of Dive Missile / Drill Bomb / Ring Boomerang / Dust Crusher Init Code
+
+	8FE2 : Common Code for Setting Weapon's Object ID, etc.. (for the 4 weapons of $8F98)
+
+	RTS : USED BY $9045.
+
+9045 / 79055: Entry Point of Pharaoh Shot Code
+
+	79110 : Pharaoh Shot Code
+
+	The following speeds are chosen by the following bits :
+		Take the direction bits value you want, and divide them by 4.
+
+	9217-9219 / 79227-79229 : Horizontal low speed table of Pharaoh Shot
+	921A-921C / 7922A-7922C : Horizontal high speed of pharaoh shots
+	921D-921F / 7922D-7922F : Vertical low speed of pharaoh shots 
+	9220-9222 / 79230-79232 : Vertical high speed of pharaoh shots
+
+914E-91C1 : Entry Point of Flash Stopper Code
+	RTS IS USED BY FOLLOWING CODE
+
+91C2 / : Entry Point of Skull Barrier Code
+
+91EB-91F8 / 791FB-79208 : Weapon Init Code Address - Low
+	Mega Buster	91EB / 791FB
+	Rush Coil	91EC / 791FC
+	Rush Jet	91ED / 791FD
+	Rush Marine	91EE / 791FE
+	Rain Flush	91EF / 791FF
+	Wire Adaptor	91F0 / 79200
+	Balloon Adaptor	91F1 / 79201
+	Dive Missile	91F2 / 79202
+	Ring Boomerang	91F3 / 79203
+	Drill Bomb	91F4 / 79204
+	Dust Crusher	91F5 / 79205
+	Pharaoh Shot	91F6 / 79206
+	Flash Stopper	91F7 / 79207
+	Skull Barrier	91F8 / 79208
+
+91F9-9206 / 79209-79216 : Weapon Init Code Address - High
+	Mega Buster	91F9 / 79209
+	Rush Coil	91FA / 7920A
+	Rush Jet	91FB / 7920B
+	Rush Marine	91FC / 7920C
+	Rain Flush	91FD / 7920D
+	Wire Adaptor	91FE / 7920E
+	Balloon Adaptor	91FF / 7920F
+	Dive Missile	9200 / 79210
+	Ring Boomerang	9201 / 79211
+	Drill Bomb	9202 / 79212
+	Dust Crusher	9203 / 79213
+	Pharaoh Shot	9204 / 79214
+	Flash Stopper	9205 / 79215
+	Skull Barrier	9206 / 79216
+
+9207-> : Particle Weapons - Sprite ID's to Init
+
+922B-926C : Subroutine - Check for Ladder grab. 
+
+7927D-7928C : Buster Charge - Megaman Palette Color 1 variants
+7928D-7929C : Buster Charge - Megaman Palette Color 2 variants
+7929D-792AC : Buster Charge - Megaman Palette Color 3 variants
+	For the three above, it takes an index. For example, if index is 2, and if the Color 1 need to be changed,
+	it is picked in 7927D + 2 = 7927F.
+	Note : The index is first going in loop from 4 to 7, then from 08 to 0B, and then from 0A to 0D.
+	When released, it does 00, 04 and 0C.
+	Index 00 to 03 and 0D and 0E use are unknown. I think they're never used.
+
+929D-92C4 : Buster Charge - 4-color palettes, after releasing charged shot.
+	The 1st color of each palette is never read.
+
+	Sometimes the color #2 of the 4 color palettes are read,
+	other times the last 3 colors are read.
+	
+	There is palette updating ASM at $8D0C in the same bank as well as $804E.
+	RAM location $36 is used specifically for this.
+	
+	The way palettes are updated after the charged shot is released,
+	seems to be programmed sloppily. Look at the ASM at $8D0C.
+	In detail, the Y register isnt increased when copying the palette, thus
+	only one color is copied to Megaman's whole palette. Second, there is
+	no write to RAM location $18, causing the palette buffer to be updated
+	to the PPU randomly or not at all.
+
+	Possible 4-color palettes read after B button is released:
+
+	08 : Immediatedly at 8D0C, random updates.
+	09 : Immediatedly at 8D0C, random updates.
+	00 : Immediatedly at 8D0C, random updates.
+	07 : At 804E next frame, sometimes after 08/09 at 8D0C, buffer written to PPU's VRAM.
+	01 : At 804E next frame, after 00 is read at 8D0C. Buffer written to PPU's VRAM.
+	
+	The other 4-color palettes are used too, seemingly only possible if a full
+	charged shot is released upon entering a boos chamber.
+
+92C5-938E : Subroutine - Toad Man stage / Cossack Stage 1 Check.
+	Block Types "Glide Left" / "Glide Right" / "Special" (Snow & Water Falling on Mega Man's head) handler.
+	Handler for "Slippery" block type.
+	ASM for "wind" effect in Toad Man's stage.
+
+  92D6 / 792E6 : Stage ID for which level the "Rain" and "Glide effect" are functional in.
+  92DC / 792EC : Wind effect of Toad Man's stage happen for screen less than the one a this
+		 address
+  92E4 / 792F4 : Direction for Toad Man Rain
+
+  9314-> Toad Man Stage - Glide Left/Glide Right ASM
+  9332 / 79342 : Glide speed, low byte
+  933A / 7934A : Glide speed, high byte
+  9341 : Common ASM for this routine - (Wind effect/Glide)
+  9343-> Toad Man Stage - Wind effect ASM
+
+  9346 / 79356 : Strenght of Toad Man Rain
+  934A / 7935A : Frequency per turn of Toad Man Rain
+
+938F : Subroutine - "Slippery" block handler.
+
+793A2 : Stage ID for which level the "Slippery" Block Type is functional in. Contents is $08 (Cossack Stage 1).
+	2nd of 3 checks that need to be changed.
+
+793AE : "Slippery" block effect - Effect deplete - Frame Counter bitwise AND, deciding ratio of depletion.
+	Contents is $03. $07 makes it twice as slow, $0F four times slow, $01 makes it twice as fast, etc.
+
+93C9-93DA : Put #$00 in $A3, $A7, $A8, #$01 in $A5, #$00 in $A6 (separated from $A3, $A7, $A8).
+	Called by $93DB.
+	Return Value : Set carry flag, meaning for $93DB stage is not Cossack Stage 1
+
+93DB-9403 : Subroutine - Manages A3 to A8, no matter the stage (call $93C9 if not in Cossack Stage 1)
+		Return : Carry Set if stage is Cossack Stage 1.
+
+793EE : Stage ID for which level the "Slippery" Block Type is functional in. Contents is $08 (Cossack Stage 1).
+	3rd of 3 checks that need to be changed.
+
+79431: "Slippery" block effect - Effect increase - Frame Counter bitwise AND, deciding ratio of depletion.
+	Contents is $01. $03 makes it twice as fast, $07 four times fast, etc.
+
+946E / 7947E : If no direction (right or left) button pushed, JUMP to $93C9. Put values in $A5-A8.
+
+948C-94D0 : Subroutine - Water - Bubble generator.
+
+94D1-9570 : Dialogue Data (1)
+9571-95B5 : Dialogue Data (2)
+95B6-95F1 : Dialogue Data (3)
+
+95F2-95F4 : Dialogue - Offset - Low
+95F5-95F7 : Dialogue - Offset - High
+
+95F8-95FF : Unused space
+
+[Weapon Menu]
+
+9600-96CE-> : Weapon Menu ASM
+
+  965D - 967A : Draw all the 32*32 of the Weapon Screen in the current screen.
+
+  967B-9685 : Load the Weapon Menu Palettes. Also Draw the sprites from $9E51 table.
+
+  9686-96AE : Draw Weapons or not, dependings if it is achieved.
+
+  96D7-96E7 : The loop on the weapon menu. It will go out only if start is pushed, to $9720.
+
+  968E : This is where it sets up the standard sprites to Spr-DMA Memory.
+
+  96E8-971F : E-Tank use code
+  9720 : Start/A button pressed
+  9731 : Weapon selected, leaving menu.
+
+  973A : IMPORTANT PLACE OF CODE! HERE, IT SETS #$00 in $30, meaning that whatever Mega Man was doing, he is now
+  having the standing state.
+  
+  974A-976E : Rush Coil/Marine/Jet Selected - Special Code
+
+  97AD : Load the Primary Scroll GFX of the selected Weapon.
+
+983E : When closing the menu, this delete the weapons in slot X = 1 to X = 4
+
+9885 : Weapon Menu - Draw Slot for Achieved Weapon/Item (Setup VRAM Buffer)
+
+98D0-9921 : Weapon Menu - Draw E-Tank / Extra Life quantity
+
+9922-9A85 : Weapon Menu - Button Press Handler ??
+  9992 : For Highlighting weapon selected, and turning gray the old one.
+  999E : Continous Attribute Table Updater?
+  9A3A-9A85 : Update Rush/Megaman Sprites
+  (9A3A called as Sub when showing Rush animation when Rush Items chosen.)
+
+9A86-9AE2 : Weapon Menu - Draw Slot for Unachieved Weapon/Item (Setup VRAM Buffer)
+9AE3-9B02 / 79AF3-79B12 : Weapon Menu Palette
+	9AFB-9AFE / 79B0B-79B0E : Coloring of hilighted Pharaoh Shot,
+				  Flash Stopper, Ring Boomerang
+
+9B04-9B3E / 79B14-79B4E : Megaman Weapon Palettes
+
+The two following tables are where to draw the energy bar for each weapon. Written at $0780 and $0781:
+
+9B3F-> : Nametable VRAM Address for each menu entry - Low
+	For the cursor, look at B0 to BE, take the desired weapon, and substract B0. You have the index.
+9B4E-> : Nametable VRAM Address for each menu entry - High
+	For the cursor, look at B0 to BE, take the desired weapon, and substract B0. You have the index.
+
+9B62-9B6C 79B72/79B7C : Weapon Menu - VRAM Buffer Source: (Quantity digits for E-Tank / Extra Life stuff) (2327)
+	Note : Digits are corrected after.
+
+9B71-9B7D-> : What to write to $A0 (Current Weapon) for each Weapon Menu selection. $0138 is the index.
+
+9B81 : Menu Entry - 1st Attribute Data Byte Offset (A index for the $9B90
+attribute table, loaded with the $0138 as an index.)
+9B90-9B96-> : Menu Entry - 1st Attribute Datas. Contains datas for the $0780 tables, index by $9B81.
+Contains datas for the $0780 Buffer to know, if the weapon is selected, which TSA table
+to edit the palette.
+All the datas will be written there in orders. So first are the two pointers, then
+the byte for number of datas, then the datas.
+The datas are the coloring of a selected weapon.
+	Bit 0-1 : Palette of TSA Block down right
+	Bit 2-3 : Palette of TSA Block down left
+	Bit 4-5 : Palette of TSA Block up right
+	Bit 6-7 : Palette of TSA Block up left
+
+	X = 00 : Mega Buster
+	X = 07 : Flash Stopper
+	X = 0E : Rain Flush
+	X = 15 : Drill Bomb
+	X = 1C : Pharaoh Shot
+	X = 23 : Ring Boomerang
+	X = 2A : Dust Crusher
+	X = 31 : E-Tank
+	X = 37 : Dive Missile
+	X = 3E : Skull Barrier
+	X = 45 : Rush Coil
+	X = 4C : Rush Marine
+	X = 54 : Rush Jet
+	X = 5B : Wire Adaptor
+	X = 62 : Balloon Adaptor
+
+9BF9 : Menu Entry - 2nd Attribute Data Byte Offset (A index for the $9C08
+attribute table, loaded with the $0139 as an index.)
+9C08-> : Menu Entry - 2nd Attribute Datas. Contains datas for the $0780 address.
+All the datas will be written there in orders. So first are the two pointers, then
+the byte for number of datas, then the datas.
+The datas are the coloring of a not selected weapon.
+	Bit 0-1 : Palette of TSA Block down right
+	Bit 2-3 : Palette of TSA Block down left
+	Bit 4-5 : Palette of TSA Block up right
+	Bit 6-7 : Palette of TSA Block up left
+
+9C70-9C73-> : Weapon Menu - Some Sprite Data
+9D30 : Sprite letters - Sprite DMA Buffer index for menu entry's sprite letter, if
+	it has one letter in its text that is sprite rather than bg.
+	If none of the letters are a sprite, the value is 00.
+	One byte for each menu entry.
+9D3F-9D62 : Weapon Menu - Megaman and Rush Sprites Byte-offset Data for 9D63
+	(Two bytes for each Weapon/Item, one for two possible animations.
+	The bytes points to where in the 9D63-9E50 to start reading sprites from.)
+
+Sprite Sets - Indexes to 9D3F:
+	00-17 : Megaman
+	18-19 : Rush (Animation)
+	1A-1B : Rush (Rush Coil Selected)
+	20-21 : Rush (Rush Marine Selected)
+	22-23 : Rush (Rush Jet Selected)
+
+9D63-9E50 : Weapon Menu - Megaman and Rush Sprite Data
+	9D63-9D88 / 79D73-79D98 : Mega Man
+	9D89-9DB4 / 79D99-79DC4 : Rush standing : see 79DC7
+	9DB7-9DBE / 79DC7-79DCE : Rush's moving tail
+	9DC1-9DE4 / 79DD1-79DF4 : Rush Going into Marine Or Jet Manque queue
+	9DE8-9DF6 / 79DF8-79E06 : Rush Coil (only the spring and the back, since the rest is the same as Rush standing)
+	9DF9-9E28 / 79E09-79E38 : Rush Marine
+	9E2B-9E4E / 79E3B-79E5E : Rush Jet
+
+9E51-9E7C : Weapon Menu Standard Sprites - Sprite RAM Setup
+	9E51-9E60 / 79E61-79E70 : Life Word
+	9E61-9E64 / 79E71-79E74 : "V" of Dive Missile
+	9E65-9E68 : "C" of Coil
+	9E69-9E6C : "M" of Marine
+	9E6D-9E70 : "J" of Jet
+	9E71-9E74 : "W" of Wire
+	9E75-9E78 : Left part of Mega Man's Head
+	9E79-9E7C : RIght part of Mega Man's Head
+
+9E7D-> : VRAM Buffer - Name Table data to write to 2nd Name Table under this condition:
+	Returning from weapon menu to Wily Stage 3, Second phase of battle with Wily.
+	(Part 1)
+9EE7-> : VRAM Buffer - Name Table data to write to 2nd Name Table under this condition:
+	Returning from weapon menu to Wily Stage 3, Second phase of battle with Wily.
+	(Part 2)
+
+9F28 : Weapon Menu - Selection Black-out Template VRAM buffer
+9F45-9F53 : Weapon Menu - Selection Black-out Name Table VRAM Address - High
+	For the cursor, look at B0 to BE, take the desired weapon, and substract B0. You have the index.
+9F54-9F62 : Weapon Menu - Selection Black-out Name Table VRAM Address - Low
+	For the cursor, look at B0 to BE, take the desired weapon, and substract B0. You have the index.
+
+9F63-9FFF / 79F73-7A00F : All unused.
+
+7A010 <-> 7C00F (Bank $3D by $2000)
+-----------------------------------
+
+[Object ASM Bank #5]
+
+MEMORY TYPE $A000-$BFFF:
+
+A000 : ?? Object ASM (Used by Ring Man Rainbow Bars)
+
+7A267-7A27A : Rainbow bars - Index data for each Screen Position.
+7A27B : Rainbow bars data.
+	Data chunk (8 bytes):
+	0-1: Nametable VRAM Update Address. (Points to Upper-Left tile in Block to the right end of bar.)
+		If Direction is Right, of Block to the left of bar.
+	2: Object X coordinate. (Points to mid of bar) (is ?0 or ?8) (Same as X placement of enemy)
+ 	3: 16x16 Level TSA TBlock to draw on void space.
+	4: Object Direction. (Direction which bar is to disappear, $1: from right, $2: from left.)
+	5: 16x16 Tile Y and X coordinate of bar. (Points to Rightmost block in bar, Leftmost if direction is Right.)
+		bit0-3: 16x16 Tile Block Y coordinate
+		bit4-7: 16x16 Tile Block X coordinate.
+		Stored to Object Private Memory 4 ($4B0-$4C7) and Enemy HP ($450-$467)
+	6: Bar Length - in 16x16 Blocks. (Written to Object's Substance and Shape data byte?)
+	7: X Coordinate of Right or Left end of bar. (Object X Coordinate to set when Megaman steps on bar.)
+		Left if direction is Right
+	    This is always '?8' (? is high nibble of hex value)
+
+A55B-A59C : Hippo's Missile Object ASM (Object ID $25)
+	A5A5-> : Sprite ID Table
+
+A5D3 : Object ID $90 ASM
+
+A7E5-A805 / 7A7F5-7A815 : Snailbot's Bomb Object ASM (Object ID $2C)
+
+A846-A876 : ??? Object ASM (Object ID $2D)
+
+A877-A8BD / 7A887-7A8CD : [Ring Miniboss Defeat Handler] Object ASM (Object ID $3A)
+
+	A8BE-A8C2 / 7A8CE-7A8D2 : Tables used by $A877.
+
+A90D-A97F / 7A91D-7A98F : Bright Man's Platform (Red)		NOTE : RTS UBT
+A980-AA1E / 7A990-7AA2E : Bright Man's Platform (Green)		NOTE : RTS NUBT
+AA1F-AA66 / 7AA2F-7AA76 : Bright Man's Platform (Green & Red)'s 
+				Table (Y quantity to add to platform)	NOTE : RTS N
+
+AA67-AA85 : ??? Object ASM (Object ID $4B)
+
+AD0C-ADCF : Drill Man stage switch Object ASM (Object ID $5B)
+	Also entry points of Unused Object ID's $57, $58, $59 and $5A.
+
+AFA6-AFAF : Dive Man stage moving spikes Object ASM (Object ID $CF)
+AFB0-AFB6 : Water Splash Object ASM (Object ID $6F)
+
+B033-B144-> : ??? - Object ID $74 ASM.
+
+  B13C-B144-> : Tbl
+  
+B148 : Cossack stage 1 boss Object ASM (Object ID $87)
+  B148 : Initial entry point
+
+  B319 : Subroutine
+  B4C4 : Subroutine
+  B5D2 : Table
+  B5DE : Table
+
+  7B5FB-> : Floor Destruction - Name Table update data
+
+B65C : Object ID $89 ASM (Single RTS)
+B65D- : (Object ID $92)
+
+B796 : (ASM here which writes $94 to $300-$317)
+
+B9D6 : Subroutine of B65D.
+
+BA8B : Object $94 ASM
+
+BD9A-BFFF : Unused junk space.
+
+7C010 <-> 8000F (Bank $3E <-> $3F by $2000) - HARD-WIRED BANK
+-------------------------------------------------------------
+
+MEMORY AREA: $C000-$FFFF
+
+[Interrupts]
+
+ASM:
+C000-C126 : NMI! (Main Body)
+C127-C148 : NMI - Sound Engine Handler
+C149-C157 : MMC3 IRQ Handler
+C158-C310 : Various MMC3 IRQ Effect ASM
+  C30E : 00 Jump Point (= No effect)
+  C158 : 01 Entry Point
+  C1A8 : 02 Entry Point
+  C1E0 : 03 Entry Point
+  C1E9 : 04 Entry Point - Dust Man Ceiling Scanline IRQ Effect
+  C20F : 05 Entry Point - Dive Man Waves Scanline IRQ Effect
+  C235 : 06 Entry Point - Dr. Cossack Battle Scanline IRQ Effect
+  C252 : 07 Entry Point - Dr. Cossack Stage 2 Boss - Scanline IRQ Effect
+  C2A0 : 08 Entry Point - Dr. Cossack Battle End Scene - Scanline IRQ Effect
+  C2BF : 09 Entry Point - Giant Metool Battle / Wily Stage 3 Battle - Scanline IRQ Effect
+  C2DC : 0B Entry Point
+  C2FE : 0A Entry Point - Train Ride Ending Scene - Scanline IRQ Effect
+C311-C317 : MMC3 IRQ Tail (Return Handler)
+
+Data:
+C318-C323 : Scanline IRQ Effect - ASM Addresses - Low
+C324-C32F : Scanline IRQ Effect - ASM Addresses - High
+
+ASM:
+C330-C354 : Writing of VRAM Buffer to VRAM
+	Note : This function is in some case accessed directly at $C334.
+
+C355-C35E : Disable NMI (PPU Control Reg #1 / $2000 / $FF - AND with #$11)
+C35F-C368 : Enable NMI (PPU Control Reg #1 / $2000 / $FF - OR with #$80)
+C369-C372 : Disable Display (PPU Control Reg #2 / $2001 / $FE - Write #0)
+C373-C37C : Enable Display (PPU Control Reg #2 / $2001 / $FE - Write #$18)
+
+C37D-C3D4 : Joypad Memory Update Routine (Read from Joypad Regs, store to $14-$17)
+
+C3D5-C420 : Pattern Table / Name Table / Attribute Table Clear Routine
+	[Usage: A = Pattern Table / Name Table - High VRAM Address,
+	 X = Byte value to fill with, Y = If Pattern Table (A < $20): # of $100-byte chunks
+	 to fill/clear CHR-RAM with from start address.
+	 - or - if Name/Attribute table (A => $20): Byte to fill Attribute Table with.
+	 (If Name Table start address is given ($20, $24, $28 or $2C), it will automatically
+	 clear its Attribute Table as well with value in Y.)]
+	 Not to be called when Display is on.
+C421-C437 : Sprite DMA Buffer RAM - Clear Routine 
+C438-C450 : Object Memory Arrays - Clear Routine
+C451-C4B7 : Palette Fade Up/Down Routine
+  C451 : JSR Entry Point for Fade Up
+  C457 : JSR Entry Point for Fade Down
+C4B8-C4D5 : Address Jumptable Handlers
+
+C4D6-C50B : 2nd Thread ASM (Random Generator, Palette Animation)
+
+C50C -> : Start-Up ASM (Starting Point of Main Thread)
+
+C539 : When gameplay is about to begin, program returns here. (Seems to happen only at first time
+	gameplay starts)
+
+  C541 : If MM looses a life (no Game Over), game jumps back here.
+  Also jumps back here from C82C.
+
+  C5A6-C5C3 : This is where the first screen is drawn to Nametable before fading palette up.
+
+  C6D4-C706 : Special case writes to $EF, for Cossack Stage 1, Pharaoh Man's Stage and Toad Man's Stage.
+		There are also some of those cases $CF67.
+
+  C68B : Draw exception for Wily Stage 3 for Screen Position #9. (Rematch warp room)
+  If game starts on this screen, and all robot masters have been defeated,
+  it will draw the additional teleporter to the Wily battle here and also
+  set up an additional sprite.
+
+  C6CD : Execution Point - Palette is Faded up when Level begins
+
+C6F3-C7F5 : Main Game Loop
+  C6F3 : Give Sprites BG Priority in Cossack Stage #1 (Continuos Check)
+  C707-C73F : Check if Weapon Menu is to be opened.
+    C731-C73D : Entering Weapon Menu
+  C740-C74C : Handle Megaman's Movement ASM
+  C74D-C759 : Handling of Object ASM
+  C75A-C765 : Handle Scrolling
+  C766-C775 : Handle Initalizing of Stage Enemies/Items
+  C776 : Call $E0FA : Ring Man Rainbow Bars handler loop add-on.
+  C779 : Call $E35C : Auto Screen Updates handler. (Checks memory $1B/$1C).
+  C77C : Call $E262 : Auto 32x32 Tile redraw.
+  C77F : Call $E492 : In-Game Palette Fade Handler.
+  C782-C784 : Call $E49C : Drill Man's Stage-specific ASM?
+  C785-C787 : Call $E4DD : Dust Man stage Shootable Blocks loop add-on.
+  C788-C791 : Update Megaman's Horizontal movement speed ($37 copied to $3A8, $38 copied to $3C0.)
+  C792-C7B3 : Mid-Point Pass Check?
+  C7B4-C7BD : Updating of Sprite DMA based on Object Sprites.
+  C7C6 : Return to Thread Handler (JSR $FF1C) (And Wait for Screen Refresh)
+  C7CB : If memory $30 is $07, $08, $11 or $13, it counts down mem $133/$134 until 0 and jumps to $C6F3, else
+	 to $C7F6.
+  C7F3 : End. Return to C6F3
+  
+C80B-C852 : Decides what to do when gameplay ends by different means.
+  Can go to Ending and Credits, can go to Weapon Get or Password screen
+  or Cossack/Wily stage maps, can restart gameplay if megaman lost a life
+  or got Balloon or Wire adaptor, or go to Game Over screen.
+
+  C82C : When gameplay is about to begin, program returns here.
+  (All times expect the first time of a playthrough)
+
+C853-C85A / 7C863-7C76A : Megaman's Palette
+
+C85B-C86A : Sound ID to Init for each Level.
+C86B-C87A / 7C87B-7C88A : Bits to OR with $528 (Megaman's Sprite Flags, see Mem 528-53F) for each Level.
+C87B-C88A / 7C88B-7C89A : Y Coordinate to give sprites below it background priority, for each Level. (Written to $EF).
+
+C88B-C8AA / 7C89B-7C8BA : Screen Preset where Mid-Point / Boss-Point is passed
+  2 bytes for each Level ID (Mid-Point, then Boss-Point).
+  This data must be set for Mid-Point / Boss-Data to work.
+  For continue-points that arent used, the value is set to $FF.
+  note: This defines the screen where the continue point is activated, while Bytes 1 and 5 in the data
+  below defines where MM will start if defeated.
+
+C8AB-C92A / 7C8BB-7C93A -> : Mid-Point / Boss-Point Data for All Stages
+  Each stage has 8 bytes.
+  byte 1 : Mid-point: Screen Position
+  byte 2 : Mid-point: Scroll Map Position
+  byte 3 : Mid-point: Primary Graphics Load ID to load (00 = None)
+  byte 4 : Mid-point: Palette Set
+  byte 5 : Boss-point: Screen Position
+  byte 6 : Boss-point: Scroll Map Position
+  byte 7 : Boss-point: Primary Graphics Load ID to load (00 = None)
+  byte 8 : Boss-point: Palette Set
+
+C92B-C96D : Wily Stage 3 rematch warp room -
+	VRAM Buffer Source for drawing 9th teleporter (If all clear).
+
+[Scrolling]
+
+ASM:
+C96E-CBFC-> : Scrolling ASM
+  C981-C9D0 : Start of Cossack Stage 3 Auto Scrolling Code.
+
+  CACF : Reading of Multipaths (Horizontal Scrolling)
+
+  CAFF : Execution Point - MM moving through boss door / (Horizontal Scrolling) scrolling right check. Jump in from $CA6F
+
+  CB43 : Execution Point - Handling Boss Doors
+
+  Data in ASM:
+    7CB90 : Megaman - Movement Speed when scroll right - Low
+    7CB98 : Megaman - Movement Speed when scroll right - High
+
+  CC03-CC12 : Boss-Doors: Screen Position of level to skip boss-door wrap down after entering boss screen.
+	(0 means no screen. This data is set for most Cossack/Wily levels.)
+
+  CC13-> : Scrolling ASM (Vertical Scrolling)
+
+  CCD0 : Reading of Multipaths (Vertical Scrolling)
+
+  CDD5 : Point - Megaman approaches a new screen
+
+Data in ASM:
+    7CE08 : Vertical Screen Scroll Speed - Down
+    7CE18 : Megaman - Movement Speed when climbing ladders Down - Low
+    7CE20 : Megaman - Movement Speed when climbing ladders Down - High
+    7CE32 : Vertical Screen Scroll Speed - Up
+    7CE40 : Megaman - Movement Speed when climbing ladders Up - Low
+    7CE48 : Megaman - Movement Speed when climbing ladders Up - High
+
+CEE1-CFA0 : Handle Stage Part Data (Scroll Map Data), set up memory and registers for new screen.
+	CEEA : Check Palette Set Byte for current Scroll Map.
+  CF67-CF9C : Special case writes to $EF, for Cossack Stage 1, Pharaoh Man's Stage and Toad Man's Stage.
+		There are also some of those cases which use table $CFA1 at $C6D4.
+  CFA1-CFB0 : Value to write to $EF for each Scroll Map, in Toad Man's Stage.
+ 
+CFB1-D04D -> : Horizontal Scrolling - Nametable Updates (Setting up of buffer)
+	D04E-> : Attribute Table AND Table with AT Work RAM (640->)
+	D050-D051 : Attribute Table AND Table with New Attribute Byte
+
+D052-D142 : Vertical Scrolling - Nametable Updates (Setting up of buffer)
+D143-D16E : Nametable Updates - Some Routine (Soubroutine of Scrolling ASM)
+
+D16F-D170 : Table Used by D052
+D171-D172 : Table Used by D052
+D173-D176 : Table Used by D052
+
+D177-> : Table Used by D052
+D17B-D17C : Table Used by D052 and D143
+D17F-D1C4 : Scrolling Nametables Updates - Return 8x8 Tiles Used in a 32x32 Tile field.
+	$29 is 32x32 Tile field in Screen to return data for. (Note: Refers to area in screen, not a 32x32 tile set in stage data. The routine reads Screen Data based on $29.)
+	Needs $20-$21 set up.
+	Sets up $7C0-$7CF and returns Attribute Table byte in $10.
+	Used by both CFB1 and D052
+
+D1C5-D24A : Nametable Updates Special Exceptions - Sub of D17F
+
+	7D1D8 : Stage ID for Hidden Blocks/Switch feature (graphics updates)
+
+	D1CF-D22F : Ring Man Rainbow Bars Exception.
+		For 16x16 Tiles:
+			$09 (Rainbow Bars - First Part)
+			$8C (Rainbow Bars - Second Part)
+		This thing's purpose is to draw black tiles instead if there's a Rainbow Bar at nametable
+		row/collumn being updated, if that part of the bar is cut off/void/black/w.e.
+
+	D230-D24A : Drill Man "Switch" Exception (Change Tile Palette to #1 if Screen's Switch is turned On. See Mem $680.)
+
+D24B-D294 : Nametable Updates - Dust Man Shootable Block Exception - Sub of D17F
+	This make the shooted Shootable Block non solid.
+
+D295-D2B9 : Scroling Nametables Updates Sub - Read Screen Data and set 32x32 Tile Data Address.
+	D2A2 : Entry Point from D2FC (Past Bankswitching)
+
+D2BA-D2BD : Table used by D17F and D24B
+D2BE-> : Table used by D052
+D2C6-> : Table used by D052
+D2CE-D2FB : Nametables Updates - Set a screen's Screen Data Address to $20/$21
+	(Y is Screen Position, $22 is Stage/Level.)
+	Sub of CFB1 and D052
+	D2D7 : Entry Point from D2FC (Past Bankswitching)
+
+
+D2FC-D427: Hit Detection : Objects with Stage Walls. (Vertical Detection/Vertical Collision)
+	[Arg: Y = Shape data couple index.]
+	Note : if calling this function directly, it only checks collision with the sent pointer,
+	not the Shape data couple.
+
+	Returns result in Mem $10, $11, and 
+	$45/$46/$47/$48/$49 stores the TSA ID from left to right under : example, for Mega Man there are values in $45, $46, $47
+	
+	$10, Same as $41, in most case. In fact, $10 contains the bits of every object
+	that is touched, because every time something is touched, we take this new
+	value and make a ORA of $10. For example, if $10 contains #$10 (solid) and we hit
+	water (ORA #$60), it contains #$70.
+	?$11 : Contains the Y position of the hit block.
+	$41 : 16x16 Tile Type of 16x16 Tile Object has hit with highest
+	value (see $41 at the start of the document). (Result of D2FC).
+
+	D397 : Hit Detection - Check for Rainbow Bar
+	D39A : Hit Detection - Cossack Stage 1 Boss Check
+	D39D : Hit Detection - Dive Man? Drill Man?
+	D3A0 : Hit Detection - Dust Man Shootable Blocks
+	D3A3 : D661 Call - Wily Stage #3 - Virtual Platform in rematch room after all clear.
+
+D428 : Hit Detection : Objects with Stage Walls. (Horizontal Detection/Horizontal Collision)
+	Returns result in Mem $10, and $45/$46/$47
+
+	D4C8 : D599 call
+	D4CB : D5DA call
+	D4CE : D5E6 call
+	D4D1 : D624 call
+	D4D4 : D661 Call - Wily Stage #3 - Virtual Platform in rematch room after all clear.
+
+D53A- : ??
+	Sub of D2FC
+
+D552-D58C : Dust Man Shootable Block Exception ??
+	Sub of D2FC
+
+D58D-D598 : ??
+
+D599-D5D9 : D2FC Sub (Ring Man Rainbow Bars?)
+	7D5B1 : Stage ID compare with #$04 (Rainbow bars related?)
+D5DA : D2FC Sub (Cossack Stage 1 - Mothraya boss extra stuff)
+D5E6-D623 : D2FC Sub (TSA Block exceptions: Dive Man Waves, Drill Man conditional surface, Ring Man "Ring-guy" miniboss with blocked path.)
+
+	Every structure are passed in this, in $29. We check all of them, and depending
+	on the level we are in, we check if for the block there is an exeption at a certain
+	moment. For exemple, every turn, all the block in Ring Man stage are checked. When
+	Whapper is defeated, some blocks must be destroyed, so here, when we check those
+	blocks, if Whapper is defeated, we destroy them.
+
+	D5EF / 7D5FF : Stage ID for Hidden Blocks/Switch feature (physics)
+
+	D5F2-D60D / 7D602-7D61D : This is here we choose to not consider the
+	Ring Man's Whapper blocks for the collision.
+
+D624 : D2FC Sub (Scanline Effect #4?)
+D661-D690 : D2FC Sub (Wily Stage 3 - Virtual Platform in rematch room after all clear.)
+
+D691-D695 : Ring Man's stage: Screen $0A Ring Miniboss:
+	32x32 tiles which are free to pass when miniboss is defeated.
+
+D696-D69D : Wily Stage #3 - Rematch Room - Virtual Platform data
+
+D69E-D6DD : Object/Wall Hit Detection (Vertical) - Shape Data - Offset - Low
+D6DE-D71D : Object/Wall Hit Detection (Vertical) - Shape Data - Offset - High
+
+	D71E-D807 : Object/Wall Hit Detection (Vertical) - Object Shape Data
+	Pointer		Address
+	=======		=======
+	00		D71E-D722	Down pointer has one more datas. It's done because there are some case
+					which code needs to checks if there is a collision in the middle of Mega Man.
+					It's done with ladder top for example : when grabbing it, it check if the middle
+					coordinate point is touched. If so it is grabbed, else not because Mega Man is
+					touching it but is too far.
+	01		D723-D726
+
+	18		D777-D77B
+	19		D77C-D780
+
+D808-D847 : Object/Wall Hit Detection (Horizontal) - Shape Data - Offset - Low
+D848-D887 : Object/Wall Hit Detection (Horizontal) - Shape Data - Offset - High
+
+D888-D99E : Object/Wall Hit Detection (Horizontal) - Shape Data
+	Pointer		Address
+	=======		=======
+	00		D888-D88C
+	01		D88D-D891
+
+	0E		D8BF-D8C2
+	0F		D8C3-D8C6
+
+D99F-D9B6 : Called by F000. Has with Object movement to do.
+D9B7-D9CC : Called by F049. Has with Object movement to do.
+D9CD-D9E6 : Put Mega Man under of the hit block detected in D2FC.
+	Called from F0F3, F225, and from certian megaman movement ASM (ROM offset 78507)
+	Called when using Rush Marine.
+	It's called after a call to $D2FC (and maybe others) because it uses the value it sets in $11.
+	Call it if with movement up, there is no more any contact with water. If so, using $11, it
+	set back item in water.
+
+D9E7-DA04 / 7D9F7-7DA14 : Put Mega Man on top of the hit block detected in D2FC.
+	Uses $11 to set MM back to position without collision
+	In $D2FC, we could find exactly what it is, since the $11 used come from
+	this function. (when called by $F3C1).
+	Called from F0BC, F1F5, F3C1 and F3DE.
+
+DA05-DA8A : Primary Graphics Load - Loader Routine
+   [Use: X = ID]
+
+DA8B-DABA : Scroll Graphics Load - Init Routine
+   [Use: A = ID]
+
+DABB-DB39 : Scroll Graphics Load - Handler/Writer Routine
+
+DB3A-DB71 : Draw Sprites. (Write to $200-$2FF, which is later copied to SPR-RAM using DMA.)
+
+DB72-DEE1 : Draw Object to $200-$2FF - X is Object Slot. This chunk of ASM also does all sorts of other stuff.
+
+	DB8F : Is enemy out of Y screen? Use $0528 to know if it has bit to be alive.
+		Also, if he has, he needs specific Sprite ID or object ID to survie (see $DBDA)
+		This is the place where we check if an object is out of Y screen. If it's Mega Man, go to $DC14.
+
+  DBDA-DBFF : A check by Object ID for some object that can survive even if out of screen.
+
+  DC00-DC13 : Remove Properties of Object in Slot indexed by X Register. (This is called as Subroutine plenty of places.)
+		Those properties are, with X index :
+			$300, $450, $5A0, $5B8 and put #$FF in $438.
+
+  DC14 : MM not in Y Screen #$00! Check if...
+	ASM : Megaman falls down pit. code is at DC14. At dc1F is if it's the first time we come here.
+
+  DC30 / 7DC40 : Falling down pit : Delay before gameplay refreshes - Low
+  DC35 / 7DC45 : Falling down pit : Delay before gameplay refreshes - High
+
+  DD5E-DD6D : Value for each Level, has with sprite invicibility to do. (When enemies are hit.)
+    This value is Sprite Bank's Tile Usage data ID to use for "blink" effect.
+    If the value is 0, it does palette blinking. (Used for Cossack/Wily stage bosses.)
+
+  DD6E-DE49 : Update Object's Sprites to Sprite DMA Buffer - Continued (A = Actual Sprite Bank's Coordinate  ID, X = Object Slot)
+  
+  DE4A-DE71 : Subroutine - Actively copy parts of Source Palette to Palette Buffer. Done at all bosses.
+   
+  DE72-DE8C : Subroutine - Blink effect for Cossack and Wily bosses.
+  
+  DE8D-DEE1 : Jump-to point - Handle blink effect for mini-bosses. Jumps back to DD30.
+
+DEE2-DEF1 : Draw Energy Bars (In order from 0 to 2)
+DEF2-DEFF : Draw Energy Bars (In order from 2 to 0)
+
+DF00-DF58 : Routine for setting up Energy Bars to Sprite DMA. (X = slot in the $0130 values)
+
+  DF1E / 7DF2E : Y Coordinate of Bottom Sprite of all Energy Bars.
+
+DF59-DF5B / 7DF69-7DF6B: Energy Bar Sprite Attribute Bytes
+	DF59 / 7DF69: Megaman Health
+	DF5A / 7DF6A: Weapon/Gadget Energy
+	DF5B / 7DF6B: Boss Health
+DF5C-DF5E / 7DF6C-7DF6E: Energy Bar Sprite X Coordinates
+	DF5C / 7DF6C: Megaman Health
+	DF5D / 7DF6D: Weapon/Gadget Energy
+	DF5E / 7DF6E: Boss Health
+
+
+
+
+If you want to free the two following code sections because you don't have Rain Flush anymore,
+remove this JSR : $DB3A:20 5F DF  JSR $DF5F.
+Also, note that 13A and 13B won't be necessary anymore.
+
+DF5F-DFBD : Rain Flush effect handler - Updates registers and writes to Sprite DMA Buffer.
+DFBE-DFF9 : Rain Flush Sprite Y and X setup data
+
+DFFA-E0F9 / 7E00A-7E109: Upper Sprite Bank Data to use for each Object ID
+
+E0FA-E20D : Some Ring Man's Stage Game Loop ASM. (Rainbow Bars)
+
+E20E-E261 : Unused Routine! Might be old subroutine previously used for Rainbow Bars or Shootable blocks.
+	The RTS at $E261 is used by $E262.
+
+E262 : Draw 32x32 Tile location in Memory $1D if value => $80. Updates done to VRAM Buffer, not direct write to VRAM.
+
+E333-E424 : Auto Screen Updates Handler
+	E35C : JSR in point from game loop.
+
+E425-E428 : Table used by E333
+
+E429-E49B : In-Game Palette Fade Handler
+
+E49C-E4DC : Drill Man stage-specific ASM - Attribute Table updates
+
+E4DD-E571 : Shootable Blocks - Update Name Table and graphic. (Main Loop Subroutine)
+	this function update the graphic of the block, not the type the type is d24b
+	Jump in from $C785
+
+	E572-E576 : Data used by D24B (Scrolling Nametable Updates - Dust Man Shootable Block Exception)
+	Pointer to Shootable Block data for each screen from Screen Position $C.
+	Note : This means that to read this table, you read $E566,X, where X is the
+	X screen position where the Block met the Weapon.
+	E577-E5C3 : More Data used by D24B (Scrolling Nametable Updates - Dust Man Shootable Exception)
+	Shootable Block - 32x32 tile position data. 
+	Data pair:
+	Byte 1: 32x32 tile position (Value $80-$FF ends data.) In a specific X screen.
+	Byte 2: Bit Offset in memory ($680-$6BF) (E578 table)
+
+	Summary : E572 tells where are the Structure datas for each X screen in the E577 table.
+	Then, each data in E577 table is a structure where there are Shootable Blocks.
+E572-E5C3 : Tables used by E4DD
+E5C4-E5C7 : Table used by E4DD
+
+E5C8-E679 : Boss Rematch room prepare routine.
+  E67A-E681 : Scroll Graphics Load ID's to load for each robot master's rematch room.
+
+E682-E750 : Boss Door Wrap-Up Drawing ASM
+E751-E80F : Boss Door Wrap-Down Drawing ASM
+
+E810-E813 : Table used by E751, and possibly E682.
+
+E814-EFFF : Unused Random Data.
+
+[$F000-$FDFF Region: Object ASM/Enemy AI Routines]
+
+note: For most of these routines, object slot is loaded into X register as argument. 
+
+F000-F048 : Check for Object Hit with Walls (To the Right of Object, i think) + move. - (X = Obj Slot, Y = Arg)
+	Routine Calls of this Sub:
+	F22D
+	F843
+	F8F9
+	F02A
+
+F049-F087 : Check for Object Hit with Walls (To the Left of Object, i think) + move. - (X = Obj Slot, Y = Arg)
+
+F088-F0C0 : ? Vertical check.. (Down). Also update movement
+	[Carry is set if floor hit]
+
+F0C1-F0F7 : ? Vertical check.. (Up). Also Update movement.
+	[Carry is set if ceiling hit]
+
+F0F8-F22C : Jump Movement (gravity influenced) + Floor collition check
+	[Arg: Y = data index, Result: Carry Flag = Floor hit. Carry is Set if floor is hit.]
+
+  F1CE : Code for Pharaoh Man's Quicksand tiles, check if in Pharaoh Man stage, and if
+	 not, make a CLC and then a RTS.
+
+F22D-F24A : Update X (Horizontal) Movement (Move Right)
+F24B-F268 : Update X (Horizontal) Movement (Move Left)
+F269-F288 : Update Y (Vertical) Movement (Move Down)
+F289-F2A6 : Update Y (Vertical) Movement (Move Up)
+		Identical fo $F2D8.
+
+F289-F2A6 : Subtract Y coordinate according to Movement Speed.
+
+F2A7-F2B7 : Update Vertical Object Movement (Jump). No wall hit detection. (gravity influenced)
+
+F2B8-F2D7 : Sprite Movement Up / Down according to Speed (F17C)
+
+F2D8-F2F5 : Update Y (Vertical) Movement (Move Up)
+		Identical fo $F289
+		Called at $F1FE (function $F0F8)
+		Called at $F2B2
+
+F2F6-F323 : Sprite Movement Up / Down according to Gravity (F1B0)
+	    Note : It also limits the vertical speed to F900.
+
+F324-F32E : Set Vertical Movement Speed to FF00.
+
+F32F-F37B : Functions whichs makes checks before calling $F37C. The big difference with calling directly
+	$F37C, it is that it checks if Mega Man is on enemy (like with Hover enemies in Pharaoh Man
+	stage). For the Whale in Dive Man stage, it uses an exception to go to $F37C.
+		Used for Whale Sucking, Pharaoh Man's Hover enemy, Rush Jet and maybe more.
+	[Arg: X = Object index which makes Mega Man moves with him
+	Object direction bits as the direction where Mega Man goes]
+
+	IMPORTANT NOTE: The big problem is that it's often called after the object moved. So if for example you jump
+	on Rush Jet, but are just on the edge of it, it will move before, then this function will be called, and Mega
+	Man is not anymore over Rush Jet, si he'll fall from it.
+
+F37C-F3C0 : Routine for Dust Man's suck action. Also Dive Man's whale.
+	NOTE : It is called by $F32F, a function which checks few things before calling
+	$F37C, like if Mega Man is in contact with object before (exemple with Hover in Pharaoh Man's stage).
+
+F3C1-F3EC / 7F3D1-7F3FC : Check if Mega Man had a Vertical collision with a wall.
+Take Y as Vertical Wall Detection ID, depending if Mega Man is
+sliding, or standing. (#$02 if not sliding, else it's #$04).
+If he had a Vertical Collision while on the platform, call $D9E7, which put Mega Man
+on the hit floor)
+	Used by Bright Man's Green Platform (not the Red one)
+
+F3ED-F3FF : Update Horizontal movement + Check for Object hit with Walls, both Left and Right [Arg: Y = Shape data couple index.]
+	(When function returns, Carry Flag contains wall hit status. If set, a wall has been hit.)
+	Function also update $0528 Flag.
+
+F400-F412 : Update Vertical movement + Check for Object hit with Walls, both Above and Below. [Arg: Y = Shape data couple index.]
+	(When function returns, Carry Flag contains wall hit status. If set, a wall has been hit.)
+
+F413-F433 : Update Horizontal Object Movement.
+F434-F445 / 7F444-7F455 : Update Vertical Object Movement. (Not gravity-influenced)
+
+F446-F451 : Set Sprite ID. ($558,X) [Arguments: A = Sprite ID]
+
+F452-F49B : Duplicate Object, with given sprite id. [Arguments: A = Sprite ID, Y = Destination Object Slot]
+	NOTE : OBJECT ID WILL NEED TO BE SET.
+  F46B : Jump-in point from $F49C routine.
+  
+  F490-F49B : Used as subroutine in various ASM: Set sprite of object in slot Y.
+
+F49C-F4DB : Set Object Position Relative to Other Object [Arguments: $10 = Relativity Pointer, 
+	    Y = Destination Object Slot, A = Written to $558,Y (Sprite ID), X = Object from
+	    which the new object is positionned.]
+	    (Uses tables F50B, F573, F5DB and F643, with pointer given in $10)
+
+	    TABLES
+	    ******
+
+	    F50B / 7F51B  : How far from the other object (Horizontal)
+			Values depends on F573 :
+				If F573 is 00, values goes from 00 to FF
+				If F573 is FF, values goes from FF to 00
+	    F573 / 7F583  : Relative position given at F50B : 
+			to the right or to the left?
+				00 : Right 
+				FF : Left
+	    F5DB / 7F5EB  : How far from the other object (Vertical)
+			Values depends on F643 :
+				If F643 is 00, values goes from 00 to FF
+				If F643 is FF, values goes from FF to 00
+	    F643 / 7F653  : Relative position given at F5DB : 
+			up or down?
+				00 : Down
+				FF : Up
+
+F4DC-F4F5 : Set $420,X based on relative position to Megaman (Make object face Megaman.) 
+F4F6-F50A : Set $528,X byte based on $420,X (Set sprite mirroring bit based on movement direction.)
+
+7F51B-7F582 : Relative Coordinate Set Table A
+7F583-7F5EA : Relative Coordinate Set Table B (Screen)
+7F5EB-7F652 : Relative Coordinate Set Table C
+7F653-7F6BA : Relative Coordinate Set Table D (Screen)
+
+F6AB-F6BB : Invert Object's Horizontal Direction (Left<->Right) - Arguments: X = Object Slot
+F6BC-F6D6 : Sound Init Array Write - Sound ID Init Routine (Called with Sound ID# in A)
+  (F6BE for Sound Effects)
+
+F6D7-F6E5 : Return Relative Y Coordinate to Megaman. [Return val: A = Relative Y Coordinate,
+	    X = Design other object, Carry Flag is set if Mega Man is at under the object.]
+F6E6-F6FC : Return Relative X Coordinate to Megaman. [Return val: A = Relative X Coordinate,
+	    X = Design other object, Carry Flag is set if Mega Man is at right of object.]
+
+	Variables not used :
+	$10
+
+F6FD-F70E : Set Mega Man position to be used by function it calls after setting values : F71E.
+	[Arg: 00 = Mega Man's Y, 01 = Mega Man's X, 02 = Mega Man's X Screen]
+	For the return value, see F71E
+	(Uses F71E)  
+
+F70F-F71D : Set Object defined by Y position to be used by function following : F71E.
+	[Arg: 00 = (Object defined by Y)'s Y, 01 = (Object defined by Y)'s X, 
+	02 = (Object defined by Y)'s X Screen]
+	For the return value, see F71E
+	NOTE : It doesn't call F71E, it follows, it's in the same function, but it's easier
+	to see them as separate function, since F6FD use F71E to.
+	(Uses F71E)  
+
+F71E-F775 : Prepare values for functions from position between two objects.
+	    From them, one known, F7A6, so enemy go toward Mega Man or another
+	    object (defined by the caller : F70F or F6FD) and then make circles over him.
+	    [Result: 00 = Distance between the two (X or Y coordinate, depending which one
+	      	     is smaller. If they are equal, it contains X distance)
+		     01 : Distance between the two (X or Y coordinate, depending which one
+	             is bigger. If they are equal, it contains X distance)
+		     02 : Contain a pointer used in the function to read table F776
+		     A   : It contains a value from F776 table. Seems to have a mean about
+			   the distance between 2 object.
+		     Y   : See down here. NOTE: It's used by the function and seems to not
+			   be used by the callers. It's a pointer on a table, for a value
+			   which is used by the calling function.]
+	    (Uses table F776, read from it with Y)
+	    (Used by F6FD and F70F)
+
+	    HERE IS HOW Y IS BUILD :
+
+		Y value (start from 00, and do steps in order) :
+		- Plus 01 if Y distance > X distance
+		- Plus 02 if (caller) at the right of (owner)
+		- Plus 04 if Y coordinate of (owner) < those of (caller)
+
+		* Multiply the numbers summed by 4
+
+		- Plus 01 if bigger distance divided by 2 is smaller than the smallest distance
+		- Plus 02 if bigger distance divided by 4 is smaller than the smallest distance
+
+
+F776 : Table used by F71E. COntains a value which has meaning concerning the position
+       between 2 objects. Indexed by the Y of F776.
+       (Used by F71E)
+
+F796 : Table : direction bits to choose from with a pointer (build with results of F71E)
+       for enemy going on Mega Man and circling over him. The pointer is build
+       from information about the position between two objects. From this information is
+       the value F71E return in A (value read from F776).
+       (Used by F7A6)
+       (Also used by FD17)
+       (Also used by Manta)
+
+F7A6-F7D7 : Give information about the distance between Mega Man and the enemy...
+	Appear to be a really useful function!
+	Use by Wall Gun, enemies that make circle over Mega Man (like Lady Bug
+	Copter), and maybe others... Will be really useful when we know more.
+	Calls F6FD which load Mega Man's position datas, and then F71E
+	to calculate values this function uses to make enemy go toward Mega Man and then
+	circle over him.
+	
+	(Uses table F796)
+	(Uses F6FD)
+
+F7D8-F842 : Hit detection: MM - Object Walls 
+		Return Value : Carry is set if Mega Man is on an object. Else, it's clear.
+			       $01 : contains ID of object hit.
+
+		Important points :
+			$F822 : It's where it comes when there is a collision with an object.
+		
+F843-F899 : ??
+
+F89A-F8BC : ? Return relative X coordinate between Megaman and object Y? (Sub of F7D8)
+	Relative X coordinate is returned in memory $10.
+
+F8BD-F8F8 : I don't know what it does exactly, but has to do with calculating
+	vertical distance with MM. This is this function which is used
+	to calculate values which are used to put MM on/under object.  (Sub of F7D8)
+F8F9 : ??
+F92E : Subtract Y coordinate pixels from MM if in contact with wall object.
+F93F : Add Y coordinate pixels to MM if in contact with wall object.
+	Return value :
+		Carry Set : 
+		Carry Clear
+
+F95D-F9B3 : Hit detection : Megaman w/ Enemy Object. 
+
+	Variables it uses :
+
+		Write Over :
+
+			$00
+			That's all!
+
+	(for Mega Man's shape, it's already set in the function. The value is the same
+	for everything, except sliding, which is checked by sprite ID (#$10 = sliding))
+
+	[Return value: 01 in the Carry Flag if there is no collision]
+	IMPORTANT NOTE : OBJECT NEED TO BE VISIBLE! (Bit 5 of Slot $0528,X)
+			 ALSO, THIS DOESN'T CHECK IF THERE IS AN OBJECT IN SLOT X!
+
+	F9B4-F9F3 / 7F9C4-7FA03 : Hit detection : Megaman w/ Enemy Object - Shape Height (Y) Data
+				Value is in # of Pixels from center of Object.
+				(For total value, multiply by 2)
+	F9F4-FA33 / 7FA04-7FA43 : Hit detection : Megaman w/ Enemy Object - Shape Width (X) Data
+				Value is in # of Pixels from center of Object.
+				(For total value, multiply by 2)
+	Which entry is used in these two tables are referenced by the Object's shape bits.
+	These are bits 2-7 of the object's byte in the $408-$41F memory range.
+	That makes the byte pointer to both tables above.
+
+	NOTE : This function checks the difference between center of Mega Man and Enemy Object.
+	It compares the distance with the ones in the tables.
+
+FA34-FA81 /7FA44-7FA91 : Collition Detect : Weapons with Enemies
+       [Arg: X = Enemy, Y = Weapon] 
+       [Return value: 01 in the Carry Flag if there is no collision]
+       (Uses table FACE)
+FA82 : Particle Hit Detection Check?
+	(00, 01, 02, E6, E7 <- input args. Returns by Carry : set if there is no collision.)
+
+FABE-FACD : Max Object Slot of weapons for each Weapon ID. Used with collition detection with enemies. (Table of FA34)
+FACE / 7FADE : Shape Height and Width Table (For Weapons)
+	For this weapons table, each Shapes are ordered in pairs of Object Height (Y) then Width (X).
+	Value is in # of Pixels from center of Object.
+	
+	Pointers (to have it, take the Substance and Shape of the weapon, and multiply by 2)
+		00 : Normal Shot, Drill Bomb
+		04 : Medium Pharaoh Shot
+		08 : Small Pharaoh Shot
+		0A : Fully charged Pharaoh Shot
+
+Note : For Enemy Shape Data, take their Substance and Shape value and make AND 3F.
+Then you have the pointer for table FADC and FB1C
+For more specific datas on Substance and Shape, such as which object used which, seek
+Substance and Shape Explicits values
+
+FADC : Shape Height Table - Enemies.
+       Value is in # of Pixels from center of Object. 
+       (For total value, multiply by 2)
+	FB0A : Gachappon's Entry
+FB1C : Shape Width Table - Enemies.
+       Value is in # of Pixels from center of Object. 
+       (For total value, multiply by 2)
+	FB4A : Gachappon's Entry
+
+FB5C-FB6B : Find Empty Enemy Object Slot (With X register, from $8 to $17) [Return vals: X = Obj slot]
+FB6C-FB7B : Find Empty Enemy Object Slot (With Y register, from $8 to $17) [Return vals: Y = Obj slot, Carry = Result, Set if no empty obj slot could be found.]
+FB7C-FB8B : Find Empty Object Slot (With Y register, from $5 to $17)
+
+FB8C-FC13 / 7FB9C-7FC23 : Throw weapon directly on Mega Man. Sets the direction bits and speed,
+	so it goes on Mega Man with the same speed, in different direction. 
+	[Arg: X = object to orient index]
+	[Ret val.: 0C = Direction bits of the object, so it goes on Mega Man. You have to set it,
+	after the call, the function doesn't do it. It sets the speed though.]
+        (Uses F6E6)
+
+FC14-FC39 : Divide routine [
+	Arguments:
+		$00 = Argument 1, $01 = Argument 2
+	Return Values:
+		$02 : Result of Argument 1 ($00) divided on Argument 2 ($01).
+		$03 : Remainder of divide
+	]
+	
+	If divide by 0, Result 1 ($02) returns $FF, Result 2 ($03) returns value of Argument 2.
+
+FC3A-FC7A : 16-bit Divide Routine
+	[Affects: $06, $07, $09 (Temp mem)
+	Arguments:
+		$00 : Argument 1 Low byte
+		$01 : Argument 1 High byte
+		$02 : Argument 2 Low byte
+		$03 : Argument 2 High byte
+	Return Values:
+		$04 : 8-bit Remainder of divide?
+		$05 : 8-bit Result (Argument 1 / Argument 2)
+	]
+
+FC7B-FC9D : Multiplication Routine - (Unused, not addressed from anywhere.)
+	[
+	Affects: $04 (temp)
+	Arguments:
+		$00, $01
+	Return Values:
+		$02 : 8-bit Result
+		$03 : ?? Affected if result overflows byte value, but is not High byte of 16-bit result.
+	]
+
+FC9E-FCBE : Set disable flag in $100-$11F range for stage's enemy/item.
+
+[Hard-Wired Misc]
+
+Data:
+FCBF-FCC6 : Bit OR / AND table
+FCC7-FCCE : Bit OR / AND table (Inverted bits)
+
+ASM:
+
+FCCF-FCE2 : Remove Properties of Object in Slot indexed by Y Register.
+		Those properties are, with Y index :
+			$300, $450, $5A0, $5B8 and put #$FF in $438.
+
+FCE3-FD04 : Stores Banks, Calls $C421, $DB3A and $FF1C.
+	called while refilling Weapon Energy/Health.
+	FCE7 : JSR point from Wily Saucer Sequence (Bank $39, $9167)
+FD05-FD16 : Store Banks to stack, Call $DABB (Scroll Graphics Load Handler)
+
+FD17-FD44 : Subroutine used by Whale enemy's missile to set movement speed. Used by other enemies?
+	FD45-FD74 : Data.
+		FD45 : Low byte of speeds
+		FD5D : High byte of speeds
+
+FD75-FD8D : Subtract Weapon Energy Routine
+
+FD8E-FD9B / 7FD9E-7FDAB : Weapon Energy Depletion for Each Weapon ID
+
+FD9C-FDCC : Init Boss Battle Music and set up other memory. - Called from Enemy ASM. Music played depends on stage.
+ 
+FDCD-FDDD : Pre-Intro ASM Launcher - Changes bank and calls Pre-Intro ASM. Called from Startup ASM.
+FDDE-FDE6 : Remove All Weapon/Gadget Objects (Removes Objects in Obj Slots 1-4.)
+
+FDE7-FDFF : Unused random data.
+
+[$FE00-$FFF9 Region]
+
+ASM:
+FE00-FEA4 : Boot-up asm from Reset Interrupt - Various Reseting / Initializing.
+	Continues into FEA5.
+FEA5-FEEC : Multi-Thread Handler Loop.
+FEED-FEFC : Register Thread.
+	Arguments:
+	A = Thread Slot. (0-3)
+	$93 = Start Address Low.
+	$94 = Start Address High.
+FEFD-FF04 : Remove Thread (?). A register is Thread Slot. Unused Routine.
+FF05-FF0E : Remove Thread - ??
+FF0F-FF14 : Return [$91] * 4 in X.
+	JSR to FF11 : Return (A * 4) in X.
+FF15-FF1B : Multi-frame Delay : # of Frames in X. (Calls FF1C multiple times.)
+FF1C-FF36 : Thread Context Switch Call
+	Stores Thread status and goes to multi-thread handler. (FEA5).
+	After Vblank has occured, it returns back from the thread handler.
+	Joypad Memory is automatically refreshed before it returns.
+	This routine is called to do single-frame delay, among other things.
+
+FF37-FF5B : Bankswitch Routine
+	[Usage: Set $F5 (Bank# $8000-$9FFF) or/and $F6 (Bank# $A000-$BFFF), then call this routine.]
+
+FF5C-FFAC : Sound Refresh - Call Sound Init / Play Routines.
+	Called once every Vblank.
+
+FFAD-FFB2 : Initial CHR Bank Setup from Reset.
+FFB3-FFF9 : Unused random data.
+
+[Interrupt Vectors]
+
+FFFA-FFFB : NMI Vector
+FFFC-FFFD : Reset Vector
+FFFE-FFFF : IRQ Vector
+
+Level Data
+==========
+
+A000-A3FF : 16x16 Tile Data
+  A000-A0FF : Upper-Left 8x8 Tile
+  A100-A1FF : Upper-Right 8x8 Tile
+  A200-A2FF : Lower-Left 8x8 Tile
+  A300-A3FF : Lower-Right 8x8 Tile
+
+  Each 16x16 tile uses a byte in all 4 tables.
+
+A400-A4FF : 16x16 Tile - Palette and Substance Data (Single byte for each entry.)
+  MSB
+  bit0-bit3 : Substance ID
+  bit6-bit7 : 4-color BG Palette
+  LSB
+
+A500-A8FF : 32x32 Tile Data
+  Unlike 16x16 tile data, each entry is organized in groups of 4 bytes.
+    byte 1 : Upper-Left 16x16 Tile
+    byte 2 : Upper-Right 16x16 Tile
+    byte 3 : Lower-Left 16x16 Tile
+    byte 4 : Lower-Right 16x16 Tile
+
+A900-B0FF : Screen Preset Data (Space for 32 Screen Presets)
+
+B100-B17F : Stage Sprite Objects - Screen of Location
+B180-B1FF : Stage Sprite Objects - X Coordinate of Location
+B200-B27F : Stage Sprite Objects - Y Coordinate of Location
+B280-B2FF : Stage Sprite Objects - Enemy ID
+
+B300-B32F : Stage Sprite Object Count for each Screen
+		(Used for Mid-Points when setting enemy count back.)
+
+B330-B4FF : Unused. (Random data)
+
+B500-B52F : Screen Preset Order
+	B520-B52F : Normally not used, but some levels are more than 32 screens long. (Pharaoh Man's stage.)
+B530-B53F : Scroll Data
+B540-B54F : Special Scroll Data (Groups of 4 bytes.)
+
+B550-B55F : Scroll Index : Stage BG Palette Set
+B560-B56F : Scroll Index : Scroll Graphics Load ID
+
+B570 : Boss Door Wrap Up - Nametable VRAM Address of Door Updates - High
+B571 : Boss Door Wrap Up - Nametable VRAM Address of Door Updates - Low
+		(Note: This points to the bottom 16x16 Tile of the Door, the top left 8x8 tile
+		of that one, to be exact.)
+B572-B575 : Boss Door Wrap Up - Which 16x16 Tiles to draw in place of the boss door.
+B576 : Boss Door Wrap Up - Attribute Table (Palette) Updates - 32x32 Tile of Door Updates (0 to $3F)
+B577 : Boss Door Wrap Up - Attribute Table (Palette) Updates - 16x16 Tile of Door Updates (0 to 3)
+		(This also points to the bottom 16x16 Tile of the door.)
+B578-B57B : Boss Door Wrap Up - Attribute Table OR Data for each 16x16 Tile.
+
+B57C-B587 : Boss Door Wrap Down Data. (Should be similiar to wrap-up data)
+
+B590-B61B-> : Stage BG Palette Sets
+	B61B is the maximum byte used in Megaman 4 for palette sets, but its safe to use
+	data past that, until B6FF.
+
+B61C-B6FF : Unused.
+
+
+Tutorial for Sprite Banks
+=========================
+To explain it, let's take the sprite 10 from Sprite Bank 3 (Ring Man's Ring)
+
+BEFORE ANIMATION
+
+You must first add this value (Sprite ID : 10) to both ROM address
+Animation - Address Table Low
+Animation - Address Table High
+of Sprite Bank 3, whiwh are 1FE10 (Low) and 1FF10 (High) to obtain the address of it's animaton
+You find at 1FE20 (Low) D1 and at 1FF20 (High) B5 which makes B5D1. 
+This is the RAM address where is the Animation.
+Since we are looking for it in the ROM, you must add it to 14010 if it's in Sprite Bank 3,
+C010 if it's Sprite Bank 1, 10010 if it's Sprite Bank 2 and 64010 if it's Sprite Bank 4. Let's
+call those the "Adjust Values".
+Our pointer, in this case, is 1F5E1. We are now at the animation datas
+
+ANIMATION
+
+Byte 0 : The number of animation (00 being 1 animation... Also, if value is bigger or equal to
+80, you'll have to add 100 to the Tile Usage pointers.
+Byte 1 : The delay between animations.
+Byte following : Tile Usage pointers, they are used to know where is the Tile Usage.
+
+To find your Tile Usage, you need to add the Tile Usage Pointers to the following datas
+Tile Usage - Address Table Low (1F810 for Sprite Bank 3)
+Tile Usage - Address Table High (1FA10 for Sprite Bank 3)
+and do the same process as done in the first step, with the same "Adjust Value".
+Let's do it with Tile Usage pointer 26. With 82 as High and F4 as Low, when adding it to 14010,
+you shall obtain 1C304. Let's go there.
+
+TILE USAGE
+
+Byte 0 : The number of tiles (00 being 1 tile)
+Byte 1 : The Coordinate Pointer (for all the tiles, coordinate will be applied with the
+same order as the tiles are given here).
+Byte followings : By groups of two :
+		First : The tile to load from the Pattern Table (PPU viewer with emulator 
+			FCEUXD)
+		Second:	Byte composed of bits with signification.
+			bit 7 	  : If set, make a Horizontal Flip of the Tile.
+			bit 6 	  : If set, make a Vertical Flip of the Tile.
+			bit 5 	  : If set, tile is behind background.
+			bit 4 	  : Never seem to be use. If it has a use, it's unknown.
+			bit 3 	  : Never seem to be use. If it has a use, it's unknown.
+			bit 2 	  : Never seem to be use. If it has a use, it's unknown.
+			bit 0 & 1 : Their value, as Hex, is used to know which palet to
+				    use to color this tile (from 0 to 3). They defined
+				    set of palets loaded in the RAM of the game.
+
+COORDINATE
+
+With the Coordinate Pointer of the Tile Usage (Byte 1), use those table
+Coordinate Data - Address Table Low (1FC10 for Sprite Bank 3)
+Coordinate Data - Address Table High (1FD10 for Sprite Bank 3)
+to obtain 996E with our current example, and add it to the "Adjust Value" of Sprite Bank 3,
+to obtain 1D97E.
+There, the datas are this way, by group of 2 (2 Byte for each tile). Apply the coordinate
+to the tiles with the same order they are shown.
+
+Byte 0 : Y position from the center of object.
+Byte 1 : X position from the center of object.
+NOTE : Coordinates from FF to 80 are negative, starting with -1 as FF. 00 to 7F are positives.
+Negative is left on X coordinates, and up on Y coordinates.
+
+That's about it! Coordinates pointers may be used by more than one Tile Usage. Especially
+paterns which are common, like squares. The only Tile Usage which are used for more than
+one animation are the Empty ones.
+
+Object ID List
+==============
+
+Total number of Object ID's is $D0. Megaman 4 does not support more.
+"u" is noted for unused Id.
+
+01 : Megaman.
+02 : Buster Shots.
+03 : Weapon Shots - After having been deflected off enemies.
+04 : Rush Coil/Marine/Jet.
+05 : Rain Flush
+06 : Balloon Adaptor
+07 : Dive Missile
+08 : Ring Boomerang
+09 : Drill Bomb
+0A : Dust Crusher
+0B : Wire Adaptor
+0C : Pharaoh Shot (Shot)
+0D : Pharaoh Shot (Being Charged)
+0Eu: Unused.
+0F : Skull Barrier
+10 : Ladybug Copter (Enemy ID $00)
+11 : Ladybug Copter - Dropped Propel.
+12 : Hover (Enemy ID $01)
+13 : Slinky (Enemy ID $02)
+14 : Scorpion
+15 : Scorpion - Controller/Generator (Enemy ID $03)
+16 : Grasshopper (Enemy ID $04)
+17u: Jet Bird - Unused.
+18 : Jet Bird (Enemy ID $05)
+19 : Jet Bird Children
+1A : Wall Gun (Enemy ID $06/$07)
+1B : Wall Gun's Bullet
+1C : Lightbulb Guy (Enemy ID $10)
+1D : Lightbulb Guy - Flare Capsule
+1E : Lightbulb Guy - Flare
+1F : Rat (Enemy ID $11)
+20 : Ring Man Rainbow Bar A/2A (Enemy ID $8/$C)
+21 : Ring Man Rainbow Bar B/2B (Enemy ID $9/$D)
+22 : Ring Man Rainbow Bar C/2C (Enemy ID $A/$E)
+23 : Ring Man Rainbow Bar D/2D (Enemy ID $B/$F)
+24 : Hippo's nose (Enemy ID $18)
+25 : Hippo's Missile
+26 : Hippo - platform block (Enemy ID $1A)
+27 : Handler when Wily battle finished in Wily Stage 3.
+28 : Wall (Enemy ID $29/$2A/$2B)
+29 : Handler after Cossack Stage 1 & 2 Boss defeated. / And Wily Stage 1 & 2 Boss defeated. (Changed to $29 from previous ID.)
+2A : Energy Circling around Megaman after Boss defeated. 
+2B : Snailbot (Toad Man stage miniboss) (Enemy ID $1E)
+2C : Snailbot's Bomb
+2D : Snaibot - Defeat Handler
+2E : Fragments of Defeated Boss.
+2F : Bright Man Stage Platform - Red (Enemy ID $28)
+30 : Ring Miniboss (Enemy ID $12)
+31 : Ring Miniboss - Ring seperation handler
+32 : Ring Miniboss - rings (seperated body)
+33 : Fly (Enemy ID $13)
+34 : Fly's Dropped Bullet
+35 : Umbrella Metool (Enemy ID $14)
+36 : Umbrella Metool - Umbrella Projectile
+37 : Fireworks Guy (Enemy ID $15)
+38 : Fireworks Guy - Fireworks Capsule
+39 : Hover : Bullets shot
+3A : Ring Miniboss - Defeat handler
+3B : Drill Bomb - Explosion State (Set to $3B from $09.) (Also used with Cossack stage 1 boss) 
+3C : Explosion(s).. (Set to when Ring Miniboss is defeated). (Also when Snailbot is defeated)
+3D : Spinner (Enemy ID $2D)
+3E : Super ball machine (Enemy ID $3E/$3F)
+3F : Super ball machine - Balls
+40 : Falling Rock - controller (Enemy ID $30)
+41 : Falling Rock - smaller pieces
+42 : Eddie (walking) (Enemy ID $31)
+43 : Eddie (not walking) (Enemy ID $32)
+44 : Eddie - Item given by Eddie (Not $C1)
+45 : Cossack stage 3 boss (Cockroach Twins) (Enemy ID $1C)
+46 : Jumbig (Enemy ID $33)
+47u: Unused. - ASM at $9F85 in bank $3A, already used by something else.
+48 : Shield Attacker (Enemy ID $34)
+49 : Cossack stage 3 boss - Handler - Initialize 2nd Cockroach Twin
+4A : Cossack stage 3 boss - Handler - Cockroach twins defeated
+4B : Hippo - Used when defeated
+4C : Lightbulb Guy - After shot - Takes care of initializing auto palette fade down
+4D : Wily Stage 4 Battle - Swirls, Enemy ID $1D (Enemy ID $1D is never used however)
+4E : Totempole (Enemy ID $36)
+4F : Totempole's Bullet
+50 : Walking Metool (Enemy ID $3B)
+51 : Metool's Bullets
+52 : Whale miniboss (Enemy ID $38)
+53 : Whale's Missile
+54 : Whale's Mines
+55u: Unused. - RTS at $ACFC in bank $3D.
+56 : Jumping Metool (Enemy ID $3C)
+57u: Unused. (Enemy ID $3D) - Bank $3D, $AD0C.
+58u: Unused. (Enemy ID $3E) - Bank $3D, $AD0C.
+59u: Unused. (Enemy ID $3F) - Bank $3D, $AD0C.
+5Au: Unused. (Enemy ID $40) - Bank $3D, $AD0C.
+5B : Drill Man's stage Switch (Enemy ID $41)
+5C : Spinning Metool (Enemy ID $42)
+5D : Cossack stage 3 platforms (Enemy ID $6A)
+5E : Dust Man up/down ceiling handler
+5F : M422A (Enemy ID $45)
+60 : Block Platform (Enemy ID $80), Shuffled Block, General (Used as general Object ID at ending, credits, and during intro scenes.) (Sprite Bank $A/$B)
+61 : Amoeba (Enemy ID $47)
+62 : Skeleton Joe (Enemy ID $48)
+63 : Skeleton Joe - Bone
+64 : Saturn Bot (Enemy ID $49)
+65 : Water Metool (Enemy ID $4A)
+66 : Water Air Bubbles.
+67 : Used with Wily Stage 1 Boss - ASM pointer refers to RTS ($8824) (Enemy ID $2C, $6D)
+68u: Unused.
+69 : Skullmet (Enemy ID $46/$4B)
+6A : Skullmet's Bullet
+6B : Dive Man's stage - Wavering water effect 1 (Enemy ID $16)
+6C : Dive Man's stage - Wavering water effect 2 (Enemy ID $17)
+6D : Helipon (Enemy ID $4C)
+6E : Helipon's Bullet
+6F : Water Splash
+70 : Piranha (Enemy ID $4D)
+71 : Skull Man
+72 : Skull Man's Bullets
+73 : Assembling Block (Enemy ID $4F)
+74 : Assembling Block - 16x16 pixel blocks.
+75 : Ring Man
+76 : Ring Man's Ring Boomerangs
+77 : Explosion? (Handler after Robot Master defeated)
+78 : Wall Wheel (Enemy ID $51/$52)
+79 : Dust Man
+7A : Dust Man's Dust Crusher (Big)
+7B : Dust Man's Dust Crusher (Smal)
+7C : Dive Man
+7D : Dive Man's Dive Missile
+7E : Drill Man
+7F : Drill Man's Drill Bomb
+80 : General - (Object ASM $8823). Known to be used to make the small explosion when an enemy dies, only when enemy dies with the "Kill Enemy Procedure"
+81 : Skull Man's Skull Barrier / General Id (Robot Master Credits - Robot Master sprites) (Sprite Bank $E/$F)
+82 : Used in Drill Man Boss Battle.
+83 : Multiple Explosions
+84 : Pharaoh Man
+85 : Pharaoh Man - Pharaoh Shot
+86 : Pharaoh Man - Normal shots
+87 : Cossack stage 1 boss (Enemy ID $57)
+88 : Cossack stage 1 boss - rod (Enemy ID $58)
+89 : Cossack stage 1 boss - eyes (Enemy ID $59)
+8A : Cossack stage 1 boss - bullet
+8B : Bright Man
+8C : Bright Man's Bullets
+8D : Toad Man
+8E : Battonton (Enemy ID $5C)
+8F : Cossack stage 1 boss - debris
+90 : Triggered after Whale miniboss. (Bank: 3D, Addr: A5D3)
+91 : Mantan (Enemy ID $5D)
+92 : Cossack battle - Cossack sprite (Enemy ID $5E)
+93 : Cossack battle - cranes (Enemy ID $5F)
+94 : ??? (Only movement) (Bank: 3D, Addr: BA8B)
+95 : Cossack stage 2 boss - eye (Enemy ID $61)
+96 : Cossack stage 2 boss - platforms (Enemy ID $62)
+97 : ??? (Only movement) (Bank: 3D, Addr: BA8B)
+98 : Falling Rock - Rock falling down
+99 : Cossack stage 2 boss - walls (Enemy ID's $63-$66)
+9A : Mummy Mauler (Enemy ID $67)
+9B : Mummy Mauler - Thrown Head
+9C : Worm (Enemy ID $68)
+9D : Pickups dropped by enemies / explosion after Enemy is killed.
+9E : Cossack Stage 3 Boss (Enemy ID $69)
+9F : Cossack Stage 3 Boss - Heavy Shot
+A0 : Cossack Stage 3 Boss - Bullets
+A1 : Mono-Roader (Enemy ID $6B)
+A2 : Cossack Stage 3 Boss (Cockroach Twin #2)
+A3 : Cossack Defeated Scene - Kalinka
+A4 : Cossack Defeated Scene - Protoman
+A5 : Cossack Defeated Scene - Dr.Wily
+A6 : Wily Stage 1 Boss - eyes (Enemy ID $6C)
+A7 : Gachappon (Enemy ID $6E)
+A8 : Gachappon's Fast Bullets
+A9 : Gachappon's Bomb
+AA : Wily Stage 1 Boss - Metools.
+AB : Wily Stage 2 Boss - Controller
+AC : Wily Stage 2 Boss - Boss Substance (Enemy ID $1B)
+AD : Wily Stage 2 Boss - Ball
+AE : Wily Stage 2 Boss - Flame shot
+AF : Wily Stage 2 Boss - Platforms
+B0 : Pakatto 24 (Enemy ID $72)
+B1 : Pakatto 24's Bullets
+B2 : Upndown
+B3 : Warp (Enemy ID $74)
+B4 : Upndown - Controller (Enemy ID $73)
+B5 : Spike Block (Enemy ID $75 and $76)
+B6 : Water Mine (Enemy ID $77)
+B7 : Spark Spine (Enemy ID $78)
+B8 : Robot Master Boss Controller (Enemy ID $79)
+B9 : Skull Dropper (Enemy ID $4E)
+BA : Moving Skull (Generated by Skull Dropper)
+BB : Wily Stage 3 Battle (Enemy ID $50) - Points to 8824.
+BC : Wily Stage 3 Battle (Enemy ID $53)
+BD : Spike Box from Right - Controller (Enemy ID $54)
+BE : Spike Box
+BF : Wily Stage 3 Battle - Shots
+C0 : Wily Stage 3 Battle - Second form - Something!
+C1 : General pickup controller (E-Tank, Health and Weapon Energy Capsules) (Note: Not items dropped by enemies) 
+C2 : Balloon Item and Wire Item Capsules
+C3 : Wily stage 1 Shuffled blocks (Enemy ID $35)
+C4 : Wily Stage 4 Battle
+C5 : Wily Stage 4 Battle - Charged Shot
+C6 : Big Energy Capsule dropped by robot masters in rematch battles.
+C7 : Ladder Press Right (Enemy ID $84)
+C8 : Fireworks Guy - Object placed when shot, splits into fireworks and smal explosion.
+C9 : Bright Man Stage Platform - Green (Enemy ID $82)
+CA : Ladder Press Left (Enemy ID $81)
+CB : Wily Stage 4 - Wily Sprite
+CC : Drill Man Boss Battle - Clouds when Drill Man drills into/out of ground.
+CD : Snailbot (Toad Man stage miniboss) - top (Enemy ID $1F)
+CE : Spike Box from Left - Controller (Enemy ID $85)
+CF : Dive Man stage floating spikes
+
+Sprite ID List
+==============
+
+An "u" after the ID means that the listed Sprite ID is unused for that bank.
+"?" means im not sure if its really unused or not.
+
+Sprite Bank 1 (MMC3 Banks $A/$B) Sprite ID's:
+---------------------------------------------
+
+01 : Intro : Fourth Screen (MM on train) - Face 1 (Sad mouth)
+02 : Intro : Fourth Screen (MM on train) - Face 2 (Normal mouth)
+03 : Intro : Fourth Screen (MM on train) - Face 3 (Determined face)
+04 : Intro : Fourth Screen (MM on train) - Face 4 (Putting helmet)
+05 : Intro : Fourth Screen (MM on train) - Body 1 (Standing)
+06 : Intro : Fourth Screen (MM on train) - Body 2 (Lifting fist)
+07 : Intro : Second Screen (MM in Machine) - Body (Pelvis region)
+08 : Intro : Second Screen (MM in Machine) - Face 2 (Pain animation)
+09 : Intro : Third Screen (MM waking up) - Face 2 (Opening eyes)
+0A : Intro : First Screen (City) - Explosion 1
+0B : Intro : First Screen (City) - Explosion 2
+0C : Intro : First Screen (City) - Explosion 3
+0D : Intro : Fourth Screen (MM on train) - Tunnel lights
+0E : Wheeled Skull (front)
+0F : Wheeled Skull (moving)
+10 : Skull Dropper
+1B : ???
+1C : Spike Box
+1D : ???
+33 : Intro : Second Screen (MM in Machine) - Face 1 (Normal)
+34 : Intro : Third Screen (MM waking up) - Face 1 (Eyes closed)
+35 : Intro : Fourth Screen (MM on train) - Face 5 (Helmet on)
+36 : Intro : Fourth Screen (MM on train) - Body 3 (Fist raised)
+37 : Intro : Third Screen (MM waking up) - Face 3 (Eyes opened)
+38 : Intro : Second Screen (MM in Machine) - Face 3 (Eyes closed)
+
+
+
+39 : First of unused pointers
+
+Sprite Bank 2 (MMC3 Banks $C/$D) Sprite ID's:
+---------------------------------------------
+
+01 : MM - Standing
+02 : MM - Aiming
+03 : MM - Unleashing object
+04 : MM - Walking
+05 : MM - Aiming while walking
+06 : MM - Unleashing object (looks same as 03, use unknown)
+07 : MM - Jumping
+08 : MM - Aiming while jumping
+09 : MM - Unleashing object while jumping
+0A : MM - Climing ladder
+0B : MM - Aiming while climbing ladder
+0C : MM - Unleashing object while climbing ladder
+0D : MM - Step forward
+0E : MM - Aiming (same as 02, use unknown)
+0F : MM - Unleashing object (same as 03, use unknown)
+10 : MM - Sliding
+11 : MM - Getting hit (with explosion)
+12 : "Clouds" when MM gets hit.
+13 : MM - Warp animation
+14 : MM - Reaching top of ladder
+15 : MM - Aiming while climbing ladder (same as 0B, used if shooting when "reaching top of ladder")
+16 : MM - Unleashing object while climbing ladder (same as 0C, used if shooting when "reaching top of ladder")
+17 : Slide dust cloud
+18 : Normal Buster Shot
+19u: Big Explosion
+1Au: Big Health Capsule
+1Bu: Smal Health Capsule
+1Cu: Big Weapon Capsule
+1Du: Smal Weapon Capsule
+1Eu: E-Tank
+1Fu: Extra Life
+20 : Full Charged Shot - Release Form
+21 : Smal Charged Shot
+22 : Full Charged Shot - Deflected off enemy
+23 : Full Charged Shot
+24 : Rush Jet
+25 : Rush Coil
+26 : Rush Marine (Not in operation)
+27 : Rush Marine (Combining with Megaman)
+28u: Rush Marine (Without waves behind propel - unused.)
+29 : Rush Marine (In operation)
+2A : Rush Marine (Aiming buster)
+2B : Rush Marine (Getting hit)
+2Du: Water splash - same data as 2E.
+2E : Water splash
+32 : MM - Warp animation (same as 13, use unknown)
+33 : "Ready"
+35 : Medium Explosion
+36 : Rain Flush capsule
+37 : Rain Flush capsule B
+3E : Balloon Item 
+3F : Balloon Item (Megaman On Top)
+40-44 : Dive Missile
+  40 : Up
+  41 : Up-Left/Right
+  42 : Left/Right
+  43 : Down-Left/Right
+  44 : Down
+45 : Ring Boomerang
+46 : Drill Bomb
+47 : Pharaoh Shot A (small)
+48 : Pharaoh Shot B (half charged)
+49 : Pharaoh Shot C (charged)
+4A : Dust Crusher
+4B : Dush Crusher, small piece
+4C : Dush Crusher, small piece
+4D : Dush Crusher, small piece
+4E : Dush Crusher, small piece
+4F : Charging Pharaoh Shot
+50 : Skull Barrier
+51 : Wire Item Capsule
+52 : Balloon Item Capsule
+53-60u : ? Has its own data.
+64-6Bu : Same data as $6C.
+6E : Cossack Battle - Cossack Catcher "cranes"
+71 : Dr.Wily (After Cossack battle)
+72?: Dr.Wily - Talking, pointing finger (unused?)
+74 : Kalinka
+75?: Kalinka - Talking (unused)
+76 : Dr. Cossack (After battle)
+77?: Dr. Cossack - Talking (unused)
+78 : Warping (Dr.Wily and Protoman after Cossack battle)
+79 : Protoman
+7A : Cossack Sprite (Battling Megaman)
+83 : Cossack Battle - Cossack Catcher lamps.
+89 : Wily's Saucer flying into distance
+8A : Wily's Saucer flying
+8B : Wily's Saucer - Opening Up (Top)
+8C : Wily'S Saucer - Opening Up (Bottom)
+
+AA : MAY BE THE FIRST OF UNUSED POINTERS
+
+B0-FFu:  Unused, has no pointers.
+
+Sprite Bank 3 (MMC3 Banks $E/$F) Sprite ID's:
+---------------------------------------------
+Sprite ID range: 00-6F
+
+01-06 : Skull Man Sprites
+  01 : Skull Man's Skull Barrier
+  02 : Skull Man standing
+  03 : Skull Man Walking
+  04 : Skull Man creating Skull Barrier
+  05 : Skull Man Shooting
+  06 : Skull Man Jumping
+07 : Mothraya Eyes
+08 : Bullet - Used with Skull Man and Bright Man and other bosses.
+09-11 : Ring Man Sprites  (Except 0E)
+  09 : Ring Man Standing
+  0A : Ring Man Walking
+  0B : Ring Man Walking, Throwing Ring
+  0C : Ring Man Jumping/Falling
+  0D : Ring Man Throwing Ring in Air
+  0F : Ring Man's sparkling helmet
+  10 : Ring Man's Ring
+  11 : Ring Throwing
+0E : Mothraya : The light flashing on his red button
+12-1C : Dust Man Sprites (Except 16)
+  12 : Standing
+  13 : Preparing Dust Crusher
+  14 : Jumping Up
+  15 : Preparing for sucking attack
+  17 : Dust Crusher (Composed)
+  18 : Dust Crusher (Smal piece)
+  19 : Dust Crusher (Smal piece 2)
+  1A : Dust Crusher (Smal piece 3)
+  1B : Dust Crusher (Smal piece 4)
+  1C : Doing sucking attack
+16 : Mothraya (Cossack Stage 1 Boss) Rod
+1D-28 (excluded 25 & 27) : Dive Man Sprites
+  1D : Shooting Dive Missile
+  1E : Propelling through - Preparing
+  1F : Dive missile Left/Right
+  20 : Dive missile Up
+  21 : Dive missile Down
+  22 : Dive missile Down Left/Right
+  23 : Dive missile Up Left/Right
+  24 : Standing.
+  25 : Unused. Points at same data of 26.
+  26 : Propelling through
+  27 : Unused : against Mothraya, it's a sprite for fire from his back. However, he doesn't use it.
+  28 : Tilting forward
+29-33 (excluded 32) : Drill Man Sprites
+  29 : Standing
+  2A : Standing, facing screen
+  2B : Drill into ground - Dust Cloud
+  2C : Standing, facing screen - Rotating drills
+  2D : Fast Jumping up
+  2E : Drilling into ground
+  2F : Jumping
+  30 : Running
+  31 : Shooting
+  33 : Drill Man's Drill Bomb.
+32 : Bullet shot by Mothraya and second Cockroach Twin.
+34-35 & 37 & 38 : Bright Man Sprites
+  34 : Standing
+  35 : Jumping
+  37 : Doing Flash
+  38 : Aiming
+36 : Rush Animation sprite in Weapon Get
+39-40 : Pharaoh Man Sprites
+  39 : Standing
+  3A : Charging Pharaoh Shot
+  3B : Jumping (facing Left)
+  3C : Jumping, throwing smal shot (facing Left)
+  3D : Jumping (facing Right)
+  3E : Jumping, throwing smal shot (facing Right)
+  3F : Pharaoh Shot
+  40 : Smal Pharaoh Shot
+41-43 : Toad Man Sprites
+  41 : Toad Man Standing
+  42 : Toad Man Jumping
+  43 : Toad Man Rain Dance
+
+44 : Boss Demo - Bright Man
+45 : Boss Demo - Toad Man
+46 : Boss Demo - Drill Man
+47 : Boss Demo - Pharaoh Man
+48 : Boss Demo - Ring Man
+49 : Boss Demo - Dust Man
+4A : Boss Demo - Dive Man
+4B : Boss Demo - Skull Man
+
+4C : Mothraya - Debris 1 when breaking floor
+4D : Mothraya - Debris 2 when breaking floor
+4E : Mothraya - Debris 3 when breaking floor
+4F : Mothraya - Debris 4 when breaking floor
+
+50-5F : Cossack Stage 3 boss (Cockroach twins) sprites
+  50 : Walking (bottom wall)
+  51 : Wall turn - bottom wall to left wall
+  52 : Walking (left wall)
+  53 : Wall turn - left wall to top wall
+  54 : Walking (top wall)
+  55 : Wall turn - top wall to right wall
+  56 : Walking (right wall)
+  57 : Wall turn - right wall to bottom wall
+  58 : Aiming (at bottom wall)
+  59 : Aiming/Ducking (at bottom wall)
+  5A : Aiming (at left wall)
+  5B : Aiming/Ducking (at left wall)
+  5C : Aiming (at top wall)
+  5D : Aiming/Ducking (at top wall)
+  5E : Aiming (at right wall)
+  5F : Aiming/Ducking (at right wall)
+
+60 : Gachappon
+61 : Gachappon (Launching ball from top)
+62 : Gachappon (Shooting bullet)
+63 : Gachappon's Ball
+64 : Mantan (Wide)
+65 : Mantan (Narrow)
+66 : Mantan (Smal)
+67 : Mono-Roader (Normal)
+68 : Mono-Roader (Rotating)
+69 : Battonton (Hiding)
+6A : Battonton (Starting to move)
+6B : Battonton (Flying)
+6C : Battonton (Going back to hiding)
+6D : Sinking Platform.
+6E : Toad Man Sprite (Use unknown)
+
+
+70 : First of Unused Pointers
+
+Sprite Bank 4 (MMC3 Banks $36/$37) Sprite ID's:
+-----------------------------------------------
+
+Sprite ID's / Animation Address Table Index:
+01 : Ladybug Copter (Flying)
+02 : Ladybug Copter (Circling)
+03 : Ladybug Copter (Circling - slower)
+04 : Ladybug Copter (Propel)
+05 : Hover (MM not on)
+06 : Hover (MM on)
+07 : Hover (Air clouds)
+08 : Hover (Same as 06?)
+09 : Spinner (Onto ceiling)
+0A : Spinner (Ready to spin)
+0B : Spinner (Spinning)
+0C : Hippo (Nose)
+0D : Hippo (Ears)
+0Eu: Unused 1 (Smal sprite) (Correction - Might be Hippo's Missile)
+0Fu: Unused 2 (Some 16x16 animated sprite) (Correction - Might be Hippo's Missile)
+11u: Unused 3 (Some 16x16 animated sprite) (Correction - Might be Hippo's Missile)
+12u: Unused 4 (Smal sprite) (Correction - Might be Hippo's Missile)
+13 : Slinky (One block down)
+14 : Scorpion (Walking)
+15 : Scorpion (Digging down into ground)
+16u: Unused ID in this bank, Same data as $17.
+18 : General Bullet?
+19 : Explosion
+1A : Big Health Capsule
+1B : Smal Health Capsule
+1C : Big Weapon Capsule
+1D : Smal Weapon Capsule
+1E : Extra Life
+1F : E Tank
+20u: Unused ID in this bank, Same data as $21.
+21 : Small Wall
+22u: Unused 5 (Could be Enemy ID $2A's sprite.. or a copy of it.)
+23u: Unused 6 (Could be Enemy ID $2B's sprite.. or a copy of it.)
+24u: Unused 7 (Some animated block.. uses enemy sprite tiles.)
+25u: Unused 8 (Some small un-animated sprite..)
+26u: Unused 9 (Unused sprite: Rolling ball-something!)
+27u: Unused 10 (Unused enemy sprite: Snake!)
+28u: Unused 11 (Some animated block.. also uses enemy sprite tiles.)
+29 : Rainbow Bar
+2A : Rainbow Bar (2nd Variant)
+2B : Fireworks Guy (Walking)
+2C : Fireworks Guy (Jumping)
+2Du: Unused ID in this bank, Same data as $2E.
+2F : Jet Bird
+30 : Jet Bird (Same as 2F?)
+31 : Jet Bird Child (Forward)
+32 : Jet Bird Child (Down)
+33 : Jet Bird Child (Forward-Down)
+34?: Unused? 12 - Jet Bird Child (Up)
+35?: Unused? 13 - Jet Bird Child (Forward-Up)
+36 : Snailbot's Eyes
+37 : Snailbot - "Thing" on the back.
+38 : Snailbot - Launch opening on top.
+39?: Unused 14? (Snailbot's Bomb)
+3A : Wall Gun - Direction 1
+3B : Wall Gun - Direction 1 (Aiming)
+3C : Wall Gun - Direction 2
+3D : Wall Gun - Direction 2 (Aiming)
+3E : Wall Gun - Direction 3
+3F : Wall Gun - Direction 3 (Aiming)
+40 : Wall Gun - Direction 4
+41 : Wall Gun - Direction 4 (Aiming)
+42 : Wall Gun - Direction 5
+43 : Wall Gun - Direction 5 (Aiming)
+44 : Wall Gun - Direction 6
+45 : Wall Gun - Direction 6 (Aiming)
+46 : Wall Gun - Direction 7
+47 : Wall Gun - Direction 7 (Aiming)
+48 : Sand Clounds when Scorpion digs into ground?
+49 : Fireworks Bot - Launched Fireworks
+4A : Fireworks Bot - Exploding Fireworks
+4B : Rainbow Bar?
+4C : Lightbulb Bot
+4D : Lightbulb Bot (Launching flares?)
+4E : Lightbulb Bot (?)
+4F : Lightbulb Bot - Flare Capsule
+50 : Lightbulb Bot - Flare
+51 : Rat
+52 : Ring Guy
+53 : Ring Guy (Eyes only)
+54 : Ring Guy (Seperating into rings)
+55 : Ring Guy (Ring)
+56 : Fly
+57 : Fly's Bullet
+58 : Eddie (Standing)
+59 : Eddie (Throwing item)
+5A : Eddie (Walking)
+5B : Hippo (Warp Animation)?
+5C : Umbrella Metool/Bot (Walking)
+5D : Umbrella Metool/Bot (Folding umbrella)
+5E?: Unused 21? (Umbrella Metool/Bot - walking forward with umbrella)
+5F : Umbrella Metool/Bot (Walking forward without umbrella)
+60 : Umbrella Metool/Bot (Launching umbrella)
+61 : Umbrella Metool/Bot - Umbrella
+62 : Explosion
+63 : Grasshopper (Hopping)
+64 : Super Ball Machine
+65 : Super Ball Machine (Ball - Vertically stretched)
+66 : Super Ball Machine (Ball - Horizontally stretched)
+67 : Falling Boulder (Compact)
+68 : Falling Boulder (Smal piece 1)
+69 : Falling Boulder (Smal piece 2)
+6A : Falling Boulder (Smal piece 3)
+6B : Falling Boulder (Smal piece 4)
+6E-70u: Unused 22 (same data)  (Might be a platform)
+71 : Drill Man Stage Switch
+72 : Skullmet
+73 : Skullmet (Shooting bullet)
+74 : Shield Attacker (seems unused, same as 76)
+75 : Shield Attacker (seems unused, same as 76)
+76 : Shield Attacker
+77 : Shield Attacker (Turning)
+78u: Unused 23 (Unused enemy sprite: Wheel gun!)
+7E : Air Bubble
+90 : Amoeba standing
+91 : Amoeba going down
+92 : Amoeba "walking"
+93 : Amoeba going up
+97 : Saturn Bot
+
+A0u: Unused 25 (Unused enemy sprite: Drop)
+A1u: Unused 26 (Unused enemy sprite: Drop - falling drop)
+AAu: Unused 27 (Some animated 32x32 pixel block using mirrored sprites)
+
+AD : First of unused pointers
+
+B0-FFu: Unused, has no pointers.
+
+More Sprite ID's: (Undetermined Sprite Bank)
+--------------------------------------------
+
+49 : Fireworks A
+4A : Fireworks B
+62 : Explosion (drill bomb)
+DF? : Inviliciblity blink
+
+Unused IDs..
+============
+
+Definately Unused Enemy ID's: $21, $22, $23, $24, $25, (more)
+
+Other Unused Enemy ID's:
+	2A : Wall (Medium)
+	2B : Wall (Large)
+	2C : Loads Object ID $67, Sprite ID $A0. (Sprite Bank 2)
+	3D : Switch (Unused Variant)
+	3E : Loads Unused Object ID $58, Sprite ID $71 (Sprite Bank 4)
+	3F : 
+	40 : 
+	88-8F : Unused entries. 8F is the last entry in all the tables concerning Enemy ID.
+
+Unused Object ID's:
+	0E
+	17 : Unused ASM - Generates Jet Bird (Object ID $18)
+	47 : ASM at $9F85 in bank $3A, already used by something else. - Generates explosions w/ sound.
+	55 : RTS at $ACFC in bank $3D.
+	57 : ASM at $AD0C in bank $3D, already used by Drill Man Stage Switch. (Object ID $5B.)
+	58 : ASM at $AD0C in bank $3D, already used by Drill Man Stage Switch. (Object ID $5B.)
+	59 : ASM at $AD0C in bank $3D, already used by Drill Man Stage Switch. (Object ID $5B.)
+	5A : ASM at $AD0C in bank $3D, already used by Drill Man Stage Switch. (Object ID $5B.)
+	68.
+
+Weapon Shape ID's
+=================
+
+00 : 00x00 : Normal Buster, Small Charged Buster, Drill Bomb, Ring Boomerang, Dust Crusher, Dive Missile, Wire
+01 : 02x06 : Fully Charged Buster
+02 : 06x06 : Medium Pharaoh Shot
+03 : 0Ex0E : Drill Bomb Explosion
+04 : 02x02 : Small Pharaoh Shot
+05 : 0Ax0A : Big Pharaoh Shot
+06 : 16x16 : Skull Barrier
+
+NOTE : To read the datas from FACE, multiply the pointers by two (since one pointer covers two
+datas)
+
+Object Shape ID's - bits 2-7 of 408-41F (Occupying area, hit detection between sprites).
+========================================================================================
+
+( Height x Width )
+$FADC x $FB1C
+00 : 0A-0A - 16*16 Square - Ladybug Copter, Battonton, Big Energy Capsule.
+01 : 09-0A - Ring Man Rainbow bars (active)
+02 : 0A-12 - Ring Man Rainbow bars (inactive) 1, Ring Guy Sub-object
+03 : 0A-1A - Ring Man Rainbow bars (inactive) 2
+04 : 0A-22 - Ring Man Rainbow bars (inactive) 3
+05 : 0A-2A - Ring Man Rainbow bars (inactive) 4
+06 : 0A-32 - Ring Man Rainbow bars (inactive) 5
+07 : 0A-3A - Ring Man Rainbow bars (inactive) 6
+08 : 0A-42
+09 : 0A-4A
+0A : 06-1A
+0B : 08-12
+0C : 0A-1A
+0D : 0E-0E - Mono-Roader, Ring Guy (Piece)
+0E : 06-06 - Hippo's Missile
+0F : 05-05 - Ladybug Copter - Dropped Propel, Bullets.
+10 : 0E-12 - Wall Gun
+11 : 0E-0A - Helipon
+12 : 0A-06
+13 : 1A-12 - Jumbig, Ring Guy
+14 : 12-12 - Drill Man's Drill Bomb Explosion
+15 : 12-0A
+16 : 1A-0A
+17 : 22-0A
+18 : 22-32 - Hippo
+19 : 2A-32
+1A : 06-0A
+1B : 0C-0E
+1C : 10-05
+1D : 04-0E
+1E : 0B-0E
+1F : 32-12
+20 : 07-0A - Metools (Covered)
+21 : 04-0A
+22 : 0E-1A
+23 : 1A-0C-Bright Man?
+24 : 12-0C
+25 : 42-06
+26 : 12-32
+27 : 12-06
+28 : 0E-06
+29 : 2A-0A
+2A : 0A-42
+2B : 05-0E
+2C : 22-22
+2D : 16-2A
+2E : 22-16
+2F : 32-32
+30 : 32-22
+31 : 0A-16
+32 : 12-16
+33 : 7A-12 - 
+34 : 0A-08
+35 : 82-F2
+36 : 0D-0B - Drill Man
+37 : 1A-1A
+38 : 0C-0A
+39 : 0A-0C
+3A : 02-02 (unused)
+3B : 02-02 (unused)
+3C : 02-02 (unused)
+3D : 02-02 (unused)
+3E : 02-02 (unused)
+3F : 02-02 (unused)
+
+(Went through Drill Man/ on Ring Man..)
+
+Wall hit detection ID - Vertical
+================================
+Object - Vertical Wall Detection ID (For D2FC/F0F8)
+===================================================
+
+Pairs: [Down]/[Up]
+
+Note 1 : Down/Up, meaning if the movement of the object is going down, or up.
+Different numbers are used for both case.
+
+00/01 : Megaman (Normal)
+	D71E/D722
+02 : Megaman - Check if in Water. Used in function $F3C1 (bank $3E). After the check with $1A/1B, Rush Marine
+call $D2FC with this pointer.
+	D727
+03 : Megaman - Slide - Check open space above MM
+	D72A
+04 : Megaman - Slide - Check open space below MM
+	D72F
+06 : Worm (Falling Down), Spinner (On Ground)
+08/09 : Skull Man (Jumping), Fireworks Bot, Mono-Roader, Wheel Skull
+0A/0B : Some Robot Masters (Jumping), Umbrella Bot Falling, Grasshopper Jump
+	Robot Masters : Dive Man, Pharaoh Man, Toad Man
+0C/0D : Dust Man (Jumping), Rat's Jump, Falling Boulder (Big)
+0E : Eddie, Spark Spine, Item dropped by Eddie (Down), Spinner
+10 : Megaman - Toad Man Stage - Check for hit with Block types Glide Right/Left, Special
+11/12 : Snail Bot's Bomb
+13 : Bright Man Jump, Hover
+14 : Small (8x8) Item (Downwards gravity)
+15 : Rush Warp Down, Falling Boulder (small pieces)
+16/17 : Super Ball Machine's Ball
+18/19 : Rush Jet, a pointer checking collision when moving.
+	18 : Worm (When on ground)
+1A/1B : Rush Marine
+1C/1D : Totempole
+1D/1E : Metool
+1F/20 : M442A (Down/Up)
+21/22 : Amoeba
+23 : Wire, Water Bubbles (Up)
+26/27 : Water Metool
+29 : Helipon (Down Check)
+2A : Wall Wheel (Down check)
+2B : Wall Wheel (Up check)
+2C : Unused?
+2D : Big (16x16) Item
+32/33 : Jumbig
+38 : Megaman - Another check if in Water? (Used to determine when to generate bubbles.)
+39 : Megaman - Slide Stop - Check open space below MM, but at #$10 instead of #$0A like pointer
+	$04. It's used when stop sliding. Maybe because of moving floors?
+	D800
+3A : Battonton - Upwards wall check
+3B-3F : Unused.
+
+Wall hit detection ID - Horizontal (For D428/F3ED)
+==================================================
+
+Pairs: [Right]/[Left]
+
+Note 1 : Right/Left, meaning if the movement of the object is going right or left.
+Different numbers are used for both case.
+Exemple : 
+	00 is Mega Man (Normal) collision to the Right
+	01 is Mega Man (Normal) collision to the Left
+
+It checks at specific points if there is a collision. I will explain it with an example of pointer 00
+
+02 08 F8 08 0B
+
+02 : First digit always tell the number of digits there will be after second digits. Here 3 because it's #$02
+08 : Second digit tells us, from center of object, how much to move the point to check. Here, +8 (#$08)
+
+Here, those are all excedent digits, for which collisions are checked. The number of those is said by the first digit.
+Those are all Y values moving from the point we are, to know where to check for collision.
+I will go on with the example.
+
+Note : If going Up, for #$FC, Y position will be AND #$04... so knowing this you can find the rest
+
+F8 : Go up from where you are of -8 (#$F8) and check at this point for collision.
+
+IMPORTANT NOTE! FOR ALL THE FOLLOWING DIGITS, WE ALWAYS MOVE FROM THE LAST POSITION
+
+08 : Go down from where you are (-8) of 8. So check at 0 vertical position
+
+0B : Go down from where you are (0) of 0B : So check vertical position at B.
+
+That's all!
+
+
+
+00/01 : Megaman (Normal)
+	D888/D88D
+04/05 : Mega Man (Slide)
+	D897/D89B
+06/07 : Mega Man (To Start to Slide)
+	D89F/D8A2
+0C/0D : Dive Man
+	D74D/D752
+0E/0F : Drill Bomb, Worm (Small)
+	D8BF/D8C3
+14/15 :  Rat, Flying Shield, Dust Man, Skull Man, Fireworks Bot, Scorpions, Hover, Mono-Roader
+18/19 : Umbrella Bot Walking, Spark Spine, Item dropped by Eddie
+1A/1B : Snail Bot's Bomb
+1C/1D : Piranha, Spinner
+20/21 : Super Ball Machine's Ball
+22/23 : Eddie
+24/25 : Rush Jet, Worm (Medium)
+26/27 : Rush Marine
+2A/2B : Metool
+2E/2F : Water Metool
+30/31 : Wall Wheels
+32/33 : Toad Man, Pharaoh Man
+34/35 : Bright Man
+36/37 : Worm (Large)
+3C/3D : Jumbig
+3E : Megaman - ??? (Normal)	I know it is set here, and not called in stage #$04...
+				has to do with Ring man rainbow bars?
+	D998
+3F : Megaman - ??? (Slide)
+	D99C
+
+Toad|Dust|Skull|Dive|Bright|Pharaoh
+
+Object Slot Usage
+=================
+
+00: Megaman.
+01-04: Megaman's Weapons.
+	04 : Rush Coil or Wire Adaptor Stuff
+05: Water when MM walks. (In Toad Man's stage.)
+	"Shock" sprite when MM is hit by enemy
+	Slide dust cloud.
+	Water Splash.
+	Might be used at explosions (When MM dies, and other cases).
+06: Megaman's Air Bubbles (If Megaman is in Water.)
+	Might be used at explosions (When MM dies, and other cases).
+07: Might be used at explosions (When MM dies, and other cases).
+08-17 : Enemies, Items, Explosions, etc.
+
+Stage Bank / Scene Bank (Contents of $22)
+=========================================
+
+00: Bright Man
+01: Toad Man
+02: Drill Man
+03: Pharaoh Man
+04: Ring Man
+05: Dust Man
+06: Dive Man
+07: Skull Man
+08: Cossack Stage 1
+09: Cossack Stage 2
+0A: Cossack Stage 3
+0B: Cossack Stage 4
+0C: Wily Stage 1
+0D: Wily Stage 2
+0E: Wily Stage 3
+0F: Wily Stage 4
+
+Scanline Effect ID's (Contents of $F0)
+======================================
+00: No effect
+01: Hippo
+02: Whale
+03: Mothraya
+04: Dust Man Ceiling
+05: Dive Man Waves
+06: Dr. Cossack Battle
+07: Dr. Cossack Stage 2 Boss
+08: Dr. Cossack Battle End Scene
+09: Giant Metool Battle and Wily Stage 3 Battle
+0A: Train Ride Intro and Ending Scene
+0B:
+
+Weapon ID's (Refers to what is loaded into Memory $A0)
+======================================================
+
+00: Mega Buster
+01: Rush Coil
+02: Rush Jet
+03: Rush Marine
+04: Rain Flush
+05: Wire Adaptor
+06: Balloon Adaptor
+07: Dive Missile
+08: Ring Boomerang
+09: Drill Bomb
+0A: Dust Crusher
+0B: Pharaoh Shot
+0C: Flash Stopper
+0D: Skull Barrier
+
+Sprite Tile Usage
+=================
+
+Enemy sprites:
+
+C0-CF : Ladybug Copter (Enemy ID $00)
+C0-CF : Hover (Enemy ID $01)
+A0-BF : Slinky (Enemy ID $02)
+A0-BF & D2-D6 : Desert Scorpion (Enemy ID $03)
+E0-FF : Grashopper (Enemy ID $04)
+DC-EF : Rocket Bird (Enemy ID $05)
+E0-FF : Gun (Enemy ID $06/$07)
+A0-BA : Lightbulb Guy (Enemy ID $10)
+A0-BF : Sewer Rat (Enemy ID $11)
+E0-EF : Fly (Enemy ID $13)
+A0-DB : Umbrella Guard (Enemy ID $14)
+C0-DF : Fireworks Guy (Enemy ID $15)
+E0-EF : Bright Man Platforms (Enemy ID $28, $82)
+EE-EF : Walls (Enemy ID $29/$2A/$2B)
+C0-E6 : Blade Spinner (Enemy ID $2D)
+A0-BF : Super Ball Machine (Enemy ID $2E/$2F)
+B0-BF : Falling Boulder (Enemy ID $30)
+B0-BF & D0-F4 Jumbig (Enemy ID $33)
+C0-DA : Shield Attacker (Enemy ID $34)
+A0-AF : Shuffled Blocks (Enemy ID $35)
+C0-DF : Totempole (Enemy ID $36)
+A0-AF & B0-B2 & D0-DF : Walking Metool (Enemy ID $3B)
+A0-BF : Jumping Metool (Enemy ID $3C)
+A0-AF : Switch (Enemy ID $41/$3D)
+A0-AF & B0-B2 & C0-CF : Spinning Metool (Enemy ID $42)
+A0-AF : M442A (Enemy ID $45)
+C0-D8 : Skullmet (Enemy ID $46/4B)
+C0-E6 : Amoeba (Enemy ID $47)
+A0-EF : Skeleton Joe (Enemy ID $48)
+C0-CF : Saturn Bot (Enemy ID $49)
+D0-EF : Water Metool (Enemy ID $4A)
+C0-EF : Helipon (Enemy ID $4C)
+B8-BB & C0-CF : Piranha (Enemy ID $4D)
+C0-DF : Skull Dropper (Enemy ID $4E)
+A0-AB : Assembling Block (Enemy ID $4F)
+A0-A5 : Wheel (Enemy ID $51/$52)
+F0-FF : Spike Box (Enemy ID $54)
+A0-BF : Battonton (Enemy ID $5C)
+D0-EF : Mantan (Enemy ID $5D)
+A0-BF & D0-FF : Mummy Mauler (Enemy ID $67)
+A0-AF & E0-E9 : Worm (Enemy ID $68)
+D0-DF : Sinking Platform (Enemy ID $6A)
+D0-FF : Mono-Roader (Enemy ID $6B)
+B0-BF & D0-FF : Gachappon (Enemy ID $6E)
+C0-CF : Pakatto 24 (Enemy ID $72)
+F0-FF : Upndown (Enemy ID $73)
+A0-AD : Shifting Spike Block (Enemy ID $75/$76)
+C0-CB : Water Mine (Enemy ID $77)
+B0-B7 : Spark Spine (Enemy ID $78)
+A0-B5 : Ladder Press (Enemy ID $81/84)
+
+Effects:
+
+F0-FF : Water Splash Effect / Bubbles
+
+Primary Graphics Load ID list
+=============================
+
+00-0F : Stage Graphics Load (Starting from beginning of stage)
+10 : Stage Select / Capcom Logo
+11 : Title Screen
+12 : Debug Menu - Font Load (Unused otherwise)
+13 : Debug Menu - Sprite Revert (Unused otherwise)
+14 : Weapon Menu
+15 : Weapon Menu Exit - Sprite Graphics Revert (Megaman's sprites)
+16 : Weapon Get
+17 : Password
+18-1F : Boss Demonstration Graphics
+20-2F : Weapon Menu - Graphics Reload for each stage (Not used at continue point!)
+30-3D : Weapon Graphics (Sorted by Weapon ID)
+	Note: 30 and 3C points to the same data! Modifying one will modify the other.
+3E : Cossack Stage Intro
+3F : Dr. Wily Stage Intro
+40 : Wily Saucer Scene
+41 : -
+42 : Bright Man's Stage - Continue Point 1
+43 : Drill Man's Stage - Continue Point 1
+44 : Pharaoh Man's Stage - Continue Point 1
+45 : Ring Man's Stage - Continue Point 1
+46 : Dust Man's Stage - Continue Point 1
+47 : Dive Man's Stage - Continue Point 1
+48 : Skull Man's Stage - Continue Point 1
+49 : Ring Man's Stage - Continue Point 2
+4E : Cossack Stage 1 - Continue Point 1
+4F : Cossack Stage 2 - Continue Point 1
+50 : Cossack Stage 3 - Continue Point 1
+51 : Cossack Stage 4 - Continue Point 1
+52 : Wily Stage 1 - Continue Point 1
+53 : Wily Stage 2 - Continue Point 1
+54 : Toad Man's Stage - Continue Point 1
+55 : Copyright Text / Intro - City Scene
+56 : Intro - Megaman's History
+57 : Intro - Train Ride
+
+Scroll Graphics Load ID list
+============================
+
+00 : Nothing
+01 : Hippo
+02 : Ring Man BG graphics change, Saturn Bot, Rainbow Bars
+03 :
+04 : Mummy Mauler
+05 : Snailbot BG and SPR
+
+3A : Unused
+
+Sound ID list
+=============
+
+ID	BGM SFX
+
+00:	X	Bright Man
+01:	X	Toad Man
+02:	X	Ring Man
+03:	X	Drill Man
+04:	X	Pharaoh Man
+05:	X	Dive Man
+06:	X	Skull Man
+07:	X	Dust Man
+08:	X	Cossack Stage 1 & 2
+09:	X	Wily Stage 1 & 2
+0A:	X	Pre-Intro A
+0B:	X	Ending
+0C:	X	Stage Clear
+0D:	X	Password
+0E:	X	Game Over
+0F:	X	Stage Intro
+10:	X	Stage Select
+11:	X	Boss Battle
+12:	X	Title
+13:	X	Credits
+14:	X	Weapon Get
+15:	X	Cossack Stage 3 & 4
+16:	X	Wily Stage 3 & 4
+17: 	    X	Flash Stopper
+18: 	    X	Rain Flush
+19: 	    X	Ring Boomerang
+1A: 	    X	Drill Bomb
+1B: 	    X	Pharaoh Shot (Load)
+1C: 	    X	Lightning (Cossack Stage Intro)
+1D: 	    X	Path being drawn (Cossack/Wily stage maps)
+1E: 	    X	Charged Shot Release
+1F: 	    X	Extra Life
+20: 	    X	Unused? - Mega Buster charged?
+21: 	    X	Normal Buster Shot
+22: 	    X	Mega Buster load start
+23: 	    X	MM hits ground
+24: 	    X	MM hit by enemy
+25: 	    X	MM explodes
+26: 	    X	Buster shot on enemy
+27: 	    X	Mega Buster loaded (held)
+28: 	    X	Drill Bomb Explodes (and more?)
+29: 	    X	Health being filled up
+2A: 	    X	Selection selected.
+2B: 	    X	MM's weapon deflected off enemy
+2C: 	    X	Boss-door wrap-up
+2D: 	    X	?? Password error?
+2E: 	    X	Menu selection
+2F: 	    X	Password OK?
+30: 	    X	Opening Weapon Menu
+31: 	    X	Grasshopper's Jump.
+32: 	    X	Wire
+33: 	    X	MM appears.
+34: 	    X	Unused - Train Flute?
+35: 	    X	?
+36: 	    X	Wily's lab is going to explode
+37: 	    X	Wily's lab is exploding (?)
+38: 	    X	Unused - ?
+39: 	    X	Appearing/Disapperaing Blocks
+3A:	X	Balloon/Wire Adaptor Achieved.
+3B:	X	Wily Stage Intro
+3C:	X	Cossack Stage Intro
+3D: 	    X	Full-loaded mega buster released.
+3E: 	    X	Full-loaded Pharaoh Shot released.
+3F:	X	Protoman's Whistle
+40: 	    X	Wily Saucer
+41: 	    X	MM Warps Out
+42: 	    X	Unused - Train Car SFX?
+43:	X	Pre-Intro B
+44: 		Unused (Pointer is 0, no data.)
+45:	X	Final Wily Battle
+46:	X	Wily Defeated
+
+Game Sequence
+=============
+
+                                         +-- Wily Defeated ->>-- JSR --> Ending/Credits **END**
+					 |
++- Cossack Stage Map 			 +-- Robot M. Defeated >-- JSR -+- Weapon Get -+
+|     |    	      Weapon Menu        |                              |              |
+|     | 		    |            |                     (stage already          V
+|     |		            |            |                  clear, no Weapon Get)      V
+^     V		            |            |                              |              |
+^     V			    |		 |                              +------<<<-----+
+|    RTS		<<JSR/RTS>>      |                              |
+|     V		            |            |                              |
+| +->>+>+ Start Level -> [Game Loop] ----+--- Loose Life --------+      |
+| |   ^ ^                                          V             |      |
+| |   | +-----------<<<<---------------------------+             |      V
+| ^   |                                                          |      V
+| ^   +---<<<-- RTS ---<<<--- (continue) ----+                   V      V
+| |                                          ^                   V      |
+| |                                          ^                   |      |
+| +-- RTS -<<+    +------ JMP --------<- Game Over -<<- JSR -<<--+      |
+|	     |    V                                                     |
++----- Stage Select --<<JSR/RTS>>-- Robot Master Demonstration          |
+	     |  ^                                                       |
+	     ^  |                                                       |
+	     ^  |                                                       |
+             |  +--------<<<-------- Password Screen ------<<<----------+
+	     |
+	     +--<-+
+	     |    |
+	     |    |
+             ^  Password Enter
+             |    |
+             |    ^
+             +----+
+             |
+	 Copyright/
+         Title Screen ---<<JSR/RTS>>-- Intro
+	     |
+  +-- JSR ---+
+  |
+  ^
+  |
+ Reset ($FE00)
+ **START**
+
+Hard-wired bank ($7C010-$8000F):
+ * Reset
+ * Start Level
+ * [Game Loop]
+
+Additional Messy Notes
+======================
+
+Object/Wall Hit Detection - Object Shape Data (Vertical Hit Detection)
+----------------------------------------------------------------------
+
+BYTE	# of components.
+BYTE Y add.
+BYTE X add.
+for each additional component:
+	BYTE X add
+
+Sprite Data Formats
+-------------------
+
+Animation Data:
+
+Size of Data - 	Description
+1 byte		[# of Frames + Page Flag]
+1 byte		Frame Length (In Vblank's)
+[# of Frames]+1		Tile Usage ID's
+
+Tile Usage Data:
+
+Size of Data -	Description
+1 byte		[# of Tiles]
+1 byte		Coordinate ID
+2 * ([# of Tiles]+1)	Tile Block
+	Tile Block:
+	1 byte	Pattern Table Tile
+	1 byte	Sprite Attribute Byte
+	
+
+Weapon Code Procedure
+---------------------
+
+Weapon Handler:
+	(Tmp Memory $10/$11 seems to be used for Temps)
+	$10: Direction Operand Function
+	$11: Sprite ID?
+
+	(Quit if Weapon Energy = Empty)
+	Check for B Button Push ($14/$16, AND #$40)
+
+	Release New Object:
+
+	(
+		lda $16
+		and #3
+		beq :+
+		sta $420
+		sta $31
+		jsr $F4F6 (dunno what it does)
+		:
+	Setting MM's Pose:
+		Setting $32 (Pose Length)
+		If $33 is 0: {
+			Setting $33
+			Calling $F446 (X = 0), with $33 + $558(0) }
+	
+	Set 420>
+	Call $F49C (with args)
+	Set 300> to something.
+	Set up 3A8>, 3C0>, 3D8>, 3F0> Ranges (Object Speeds?)
+	Set up 408> (unknown use) to 04?
+
+	Call $FD75 to subtract current weapon's energy
+
+	Call $F6BE with Sound ID in A for whatever weapon sound effect
+
+Common Object ASM for Weapons/Items:
+	jsr	$F413  ;(Object Slot in X register) - update horizontal Object movement (left and right)
+	jsr	$F434  ;(Object Slot in X register) - update vertical Object movement (up and down)
+	jsr	$884B  ;(Object Slot in X register) - make weapon work with "Shootable" block type.
+	lda	$390,x	;$390 is Y screen.
+	beq	:+
+	;Will remove object if it moves out of top or bottom of screen.
+	jsr	$DC00	;(Object Slot in X register) - Kill object.
+
+
+Explosion Code Procedure
+------------------------
+
+This is for a explosion that hurt Mega Man
+
+!!! START : HOW TO CREATE AN EXPLOSION (LIKE WITH DRILL MAN'S BOMB)
+
+20 00 DC  JSR $DC00			Kill object
+
+!!! Load the sprite ID for explosion and call function to set it and reset sprite's properties
+
+A9 62     LDA #$62
+20 46 F4  JSR $F446
+
+!!! Object ID now become #$83, multiple explosion
+
+A9 83     LDA #$83
+9D 00 03  STA $0300,X @ $0313 = #$2C
+
+!!! Substance and shape now become #$B7
+
+A9 B7     LDA #$B7
+9D 08 04  STA $0408,X @ $041B = #$CE
+60        RTS
+
+!!! END : HOW TO CREATE AN EXPLOSION (LIKE WITH DRILL MAN'S BOMB)
+
+Kill Enemy Procedure
+--------------------
+This is useful, because just calling $DC00 doesn't put the small explosion sprite. This is what is used in the original ASM when an enemy dies after a time.
+A function to put a enemy exploding sprite when you kill him
+
+!!! Kill enemy
+
+$9EF3:20 00 DC  JSR $DC00
+
+!!! Put a object ID of explosion.
+
+$9EF6:A9 9D     LDA #$9D
+$9EF8:9D 00 03  STA $0300,X @ $0317 = #$CE
+
+!!! Set Substance And Shape to #$00, else it deflects weapons
+
+$9EFB:A9 00     LDA #$00
+$9EFD:9D 08 04  STA $0408,X @ $041F = #$C0
+
+!!! Load the sprite for the small explosion.
+
+$9F00:A9 62     LDA #$62
+$9F02:4C 46 F4  JMP $F446
+
+ASM explanation : Bank $3C, $805E : Crushed by a moving wall?
+-------------------------------------------------------------
+
+$805E:A5 30     LDA $0030
+$8060:C9 06     CMP #$06
+$8062:B0 32     BCS $8096
+$8064:A5 22     LDA $0022
+$8066:C9 04     CMP #$04
+$8068:F0 2C     BEQ $8096
+$806A:A2 00     LDX #$00
+$806C:A0 3E     LDY #$3E
+$806E:A9 B5     LDA #$B5
+$8070:85 00     STA $0000
+$8072:A5 30     LDA $0030
+$8074:C9 02     CMP #$02
+$8076:D0 05     BNE $807D
+$8078:A9 B7     LDA #$B7
+$807A:85 00     STA $0000
+$807C:C8        INY
+$807D:A5 F0     LDA $00F0
+$807F:C9 04     CMP #$04
+$8081:D0 07     BNE $808A
+$8083:AD 78 03  LDA $0378
+$8086:C5 00     CMP $0000
+$8088:B0 0C     BCS $8096
+$808A:20 28 D4  JSR $D428
+$808D:A5 10     LDA $0010
+$808F:29 10     AND #$10
+$8091:F0 03     BEQ $8096
+$8093:20 43 82  JSR $8243
+$8096:60        RTS
+
+This ASM is for detecting if megaman became crushed by a moving wall,
+and happens every frame during all gameplay, except for Ring Man's stage.
+$22 is stage id, the value #$04 means Ring Man's stage.
+Its probably only meant for the moving wall in Dust Man's stage.
+The reason for the Ring Man exception is probably to prevent the disappearing bars
+from crushing megaman, they are moving walls.
+There is also additional code for when megaman is in the moving wall section
+in Dust Man's stage. If MM's Y coordinate is $B5 or more ($B7 if sliding), the
+wall hit detection is skipped. Im not sure why.
+(F0 is active Scanline Effect id, #$04 is the one used in the moving wall section.
+This value is checked a lot of places to check if MM is in that particular area
+of the game.)
+
+Graphics Load Data
+------------------
+
+0: Source Bank
+1: # of tiles
+2: Src Hi
+3: Dst Hi
+
+Earlier Version Traces
+----------------------
+
+Suggestion: Cossack Stage 3 were meant to have the Sewer Rat enemy and Platforms from Bright Man's stage
+	at the beginning of the stage.
+Evidence: The graphics for those objects are loaded into the pattern table when the stage starts.
+
+Suggestion: Toad Man's stage had a section where scrolling splits in two, connected at the screen right before
+	the first Snail miniboss. Maybe either Wire or Balloon were in Toad Man's stage previously.
+Evidence: Between screens $F and $12 in Toad Man's stage, there are two blank screens, which follows regular
+	scroll data. The "ordinary" path between screens $F and $12 is connected using extraordinary scroll data.
+	(ie Multi-Path data).
+
+Alternate "READY" tiles: A different-looking tile set of "ready" is loaded into the sprite pattern table, among
+	the "lightbulb" enemy graphics when Bright Man's stage starts. These might be test graphics, or Capcom
+	thought of using a different part of the pattern table for the "READY" tiles.
+
+ROM Version / Regional differences (Incomplete)
+-----------------------------------------------
+
+European version:
+	Bank $1B ($36010) has some differences in code.
+	The sound engine has alot of changes. (Bank $1E)
+
+Rockman version:
+	Bank $1C ($38010) has a few changes in code.
+	Bank $1B ($36010) has some differences in code.
+	Bank $3D: Changes from $B690 / $7B6A0 and on.
+	$CF52 / 7CF62 : STA $BF and STA $4C8 is swapped around.
+	
+Differences between Rockman 4 ROM dumps (differences from "Rockman 4 - Aratanaru Yabou! (J).nes".)
+
+	Rockman 4 - Aratanaru Yabou! (J) [a1].nes :
+		Tile at $8B90: 1 pixel is different (probably corrupt).
+		Tile at $269E0: 1 pixel is corrupt.
+		Tile at $2DD10: 1 pixel is corrupt.
+		Tile at $2EC50: 1 pixel is corrupt.
+		Tile at $306A0: 1 pixel is corrupt.
+		Tile at $33330: 1 pixel is corrupt.
+		Tile at $4BF90: 1 pixel is corrupt.
+		
+	Rockman 4 - Aratanaru Yabou! (J) [b1].nes :
+		NES header: Initial Mirroring setting is Horizontal.
+		Tile at $E020: Slightly different.
+
+Basically, for most ranges labeled "Unused random data", the contents of those ranges
+seem all different in both the European version and the Rockman 4 version.
