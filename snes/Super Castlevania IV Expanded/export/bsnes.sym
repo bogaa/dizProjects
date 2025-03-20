@@ -456,6 +456,7 @@
 80:817F waitInterup
 80:8189 RNGgetMix00
 80:81B8 NMIstart
+80:81E3 startNewFrame
 80:8239 mainGameRoutines
 80:8255 soundEffectLunch
 80:825B endNMI_IRQ
@@ -471,6 +472,7 @@
 80:8315 donnoRAM5e01
 80:8345 DMA2updatePalettes
 80:8387 clearCamLightScreen_endingSequ
+80:84C8 initiateLagFrame
 80:8500 removeBit30_writeInteruptFlag
 80:850D HDMI_windowInit
 80:8525 initBlank_stopHDMI
@@ -585,7 +587,11 @@
 80:9A34 konamiTitleScreen04_wait
 80:9A3D konamiTitleScreenEnd_initTitle
 80:9A46 konamiScreenRoutine
-80:9A63 someUnknownRoutine
+80:9A63 levelSelectMenu
+80:9A72 levelSelect_state
+80:9A76 levelSelect_init_state
+80:9ABF levelSelect_run_state
+80:9B10 levelSelectPointers
 80:9B98 mainMapScreenRoutine
 80:9BBF mapScreenJumpTableRoutine
 80:9BCF mapScreenJumpTable
@@ -1444,6 +1450,76 @@
 81:8B8A konamiPalAnim_01
 81:8B93 konamiPalAnim_02
 81:8B9C konamiPalAnim_03
+81:8BA5 levelSelectStuff
+81:8C38 probablyLevelSelectText
+81:8C3B lvlSelect_stage_text_00
+81:8C41 lvlSelect_stage_text_01
+81:8C47 lvlSelect_stage_text_02
+81:8C4D lvlSelect_stage_text_03
+81:8C53 lvlSelect_stage_text_04
+81:8C59 lvlSelect_stage_text_05
+81:8C5F lvlSelect_stage_text_06
+81:8C65 lvlSelect_stage_text_07
+81:8C6B lvlSelect_stage_text_08
+81:8C71 lvlSelect_stage_text_09
+81:8C77 lvlSelect_stage_text_0a
+81:8C7D lvlSelect_stage_text_0b
+81:8C83 lvlSelect_stage_text_0c
+81:8C89 lvlSelect_stage_text_0d
+81:8C8F lvlSelect_stage_text_0e
+81:8C95 lvlSelect_stage_text_0f
+81:8C9B lvlSelect_stage_text_10
+81:8CA1 lvlSelect_stage_text_11
+81:8CA7 lvlSelect_stage_text_12
+81:8CAD lvlSelect_stage_text_13
+81:8CB3 lvlSelect_stage_text_14
+81:8CB9 lvlSelect_stage_text_15
+81:8CBF lvlSelect_stage_text_16
+81:8CC5 lvlSelect_stage_text_17
+81:8CCB lvlSelect_stage_text_18
+81:8CD1 lvlSelect_stage_text_19
+81:8CD7 lvlSelect_stage_text_1a
+81:8CDD lvlSelect_stage_text_1b
+81:8CE3 lvlSelect_stage_text_1c
+81:8CE9 lvlSelect_stage_text_1d
+81:8CEF lvlSelect_stage_text_1e
+81:8CF5 lvlSelect_stage_text_1f
+81:8CFB lvlSelect_stage_text_20
+81:8D01 lvlSelect_stage_text_21
+81:8D07 lvlSelect_stage_text_22
+81:8D0D lvlSelect_stage_text_23
+81:8D13 lvlSelect_stage_text_24
+81:8D19 lvlSelect_stage_text_25
+81:8D1F lvlSelect_stage_text_26
+81:8D25 lvlSelect_stage_text_27
+81:8D2B lvlSelect_stage_text_28
+81:8D31 lvlSelect_stage_text_29
+81:8D37 lvlSelect_stage_text_2a
+81:8D3D lvlSelect_stage_text_2b
+81:8D43 lvlSelect_stage_text_2c
+81:8D49 lvlSelect_stage_text_2d
+81:8D4F lvlSelect_stage_text_2e
+81:8D55 lvlSelect_stage_text_2f
+81:8D5B lvlSelect_stage_text_30
+81:8D61 lvlSelect_stage_text_31
+81:8D67 lvlSelect_stage_text_32
+81:8D6D lvlSelect_stage_text_33
+81:8D73 lvlSelect_stage_text_34
+81:8D79 lvlSelect_stage_text_35
+81:8D7F lvlSelect_stage_text_36
+81:8D85 lvlSelect_stage_text_37
+81:8D8B lvlSelect_stage_text_38
+81:8D91 lvlSelect_stage_text_39
+81:8D97 lvlSelect_stage_text_3a
+81:8D9D lvlSelect_stage_text_3b
+81:8DA3 lvlSelect_stage_text_3c
+81:8DA9 lvlSelect_stage_text_3d
+81:8DAF lvlSelect_stage_text_3e
+81:8DB5 lvlSelect_stage_text_3f
+81:8DBB lvlSelect_stage_text_40
+81:8DC1 lvlSelect_stage_text_41
+81:8DC7 lvlSelect_stage_text_42
+81:8DCD lvlSelect_stage_text_43
 81:8F0D musicIDtableRingSwing
 81:8F57 simonWalkFrameComparTimer
 81:8F67 simonWalkAnimationSpriteAssemblyPointer
@@ -1577,7 +1653,7 @@
 81:B503 flameSprOptionsGFXsrcDesPointer
 81:B50C some10GFXsrcDesPointer
 81:B51A some11GFXsrcDesPointer
-81:B537 some12GFXsrcDesPointer
+81:B537 lvlSelect_12GFXsrcDesPointer
 81:B545 some13GFXsrcDesPointer
 81:B567 some14GFXsrcDesPointer
 81:B5A7 titleScreenGFX_tilmapLoad
@@ -2159,7 +2235,7 @@
 82:003A r82_frameCounter
 82:003E r82_blackFadeCounter
 82:8000 rlTimerRoutine
-82:8030 cam1FGBehavier
+82:8030 outOfBounceChecks
 82:8064 deathStateHandler00
 82:80AF newSC4edReversLevelSupportDeath
 82:80DD lunchMusicFromAccum
@@ -6509,8 +6585,6 @@ FF:8000 emptyBankFF
 1D:AD35 MUSIC_1DAD35
 7D:FFFB GFX_7DFFFB
 7D:FFFE GFX_7DFFFE
-80:9A72 PTR16_809A72
-80:9B10 DATA16_809B10
 80:CB6B PTR16_80CB6B
 80:CEA6 PTR16_80CEA6
 81:8000 DATA16_818000
@@ -6983,6 +7057,7 @@ A6:8201 UNREACH_A68201
 80:96D4 gameOver
 80:976B death
 80:9807 donno
+80:9ABF ldx 
 80:A3FA not sure but it seems to run when ground is near while jumping
 80:A40A crouchFrame
 80:B831 donno what it is good for
@@ -7117,6 +7192,7 @@ A6:8201 UNREACH_A68201
 86:889C first level seems to be special. Mode7 bridge??
 86:8C8A first byte tells how many enteries are present followed by the even ID used in the scene. They need to be in order so the slot space can be assigned to the event sprite address
 86:A1B6 not sure
+86:A4A4 garden collusion setup 
 86:ACFA donno when this is used 
 86:B4EE check if $33 or $1C requiring STZ $13D4 and INC of $1602/$1604. fix secret exits to use entrance 2
 86:B859  replace collision setup with table base setup in $C8
@@ -7147,7 +7223,6 @@ F5:9E7D probably tilemap titlescreen stuff..
 80:8EDA check if abovve screen to skip 
 80:93E1 unused??
 80:9675 timer out of bounce checks??
-80:9ABF unused??
 80:D7E9 X is 13a0 table probably small representation of the PPU slot 
 80:EEBC would this not also work with a subID?? and then adding new states to the mudman??
 80:EF58 unused??
