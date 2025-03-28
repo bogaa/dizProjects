@@ -558,6 +558,7 @@
 80:95CF mainGameState04
 80:9601 blackFadeRoutine
 80:960B mainGameState05
+80:9621 mainSimonRoutines
 80:9626 mainSimonRoutines
 80:9692 mainGameState06
 80:96D4 mainGameState07_gameOver
@@ -677,6 +678,7 @@
 80:AB47 ringProcessing_27c_leangth
 80:AB55 ringProcessing37a
 80:ACDC simon_deathAnimRoutine
+80:AD0F scroll_camUpdate
 80:ADA7 simonWallOffsets_OnCollusion
 80:AE02 setSimonCollusionByte1430
 80:AE19 setSimonCollusionByte1400

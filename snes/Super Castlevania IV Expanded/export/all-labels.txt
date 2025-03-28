@@ -557,6 +557,8 @@
 ;!^!-USED-!                        mainGameState04 = $8095CF            ;      |        |      ;
 ;!^!-USED-!                        blackFadeRoutine = $809601           ;      |        |      ;
 ;!^!-USED-!                        mainGameState05 = $80960B            ;      |        |      ;
+;!^!-UNUSED-!                        ;      |        |      ;
+;!^!-USED-!                        mainSimonRoutines = $809621          ;      |        |      ;
 ;!^!-USED-!                        mainSimonRoutines = $809626          ;      |        |      ;
 ;!^!-USED-!                        mainGameState06 = $809692            ;      |        |      ;
 ;!^!-USED-!                        mainGameState07_gameOver = $8096D4   ;      |        |      ;
@@ -676,6 +678,7 @@
 ;!^!-USED-!                        ringProcessing_27c_leangth = $80AB47 ;      |        |      ;
 ;!^!-USED-!                        ringProcessing37a = $80AB55          ;      |        |      ;
 ;!^!-USED-!                        simon_deathAnimRoutine = $80ACDC     ;      |        |      ;
+;!^!-USED-!                        scroll_camUpdate = $80AD0F           ;      |        |      ;
 ;!^!-USED-!                        simonWallOffsets_OnCollusion = $80ADA7;      |        |      ;
 ;!^!-USED-!                        setSimonCollusionByte1430 = $80AE02  ;      |        |      ;
 ;!^!-USED-!                        setSimonCollusionByte1400 = $80AE19  ;      |        |      ;
@@ -6852,7 +6855,6 @@
 ;!^!-USED-!                        CODE_8095E0 = $8095E0                ;      |        |      ;
 ;!^!-USED-!                        CODE_809600 = $809600                ;      |        |      ;
 ;!^!-USED-!                        CODE_80960D = $80960D                ;      |        |      ;
-;!^!-USED-!                        CODE_809621 = $809621                ;      |        |      ;
 ;!^!-USED-!                        CODE_80963A = $80963A                ;      |        |      ;
 ;!^!-USED-!                        CODE_809669 = $809669                ;      |        |      ;
 ;!^!-USED-!                        CODE_809675 = $809675                ;      |        |      ;
@@ -7032,7 +7034,6 @@
 ;!^!-USED-!                        CODE_80ACF8 = $80ACF8                ;      |        |      ;
 ;!^!-USED-!                        CODE_80AD0B = $80AD0B                ;      |        |      ;
 ;!^!-USED-!                        CODE_80AD0E = $80AD0E                ;      |        |      ;
-;!^!-USED-!                        CODE_80AD0F = $80AD0F                ;      |        |      ;
 ;!^!-USED-!                        CODE_80AD22 = $80AD22                ;      |        |      ;
 ;!^!-USED-!                        CODE_80AD2C = $80AD2C                ;      |        |      ;
 ;!^!-USED-!                        CODE_80AD46 = $80AD46                ;      |        |      ;
