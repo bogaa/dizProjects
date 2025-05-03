@@ -1,4 +1,4 @@
-Put the ROM mentioned below into this folder and execute the NES2SNES.bat.
+Put the ROM mentioned below into this folder and run the NES2SNES.bat.
 
 Database match: Kirby's Adventure (USA) (Rev 1)
 Database: No-Intro: Nintendo Entertainment System (v. 20210216-231042)

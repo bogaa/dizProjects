@@ -2,6 +2,7 @@
 .tools
 .kandoOrginal
 .dizProjects
+errors.txt
 *.asm
 *.sfc
 *.smc

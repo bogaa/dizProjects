@@ -1,3 +1,4 @@
+
 ::if exist .rom\*.nes (timeout 1)
 ::goto errorMessangeNoRom
 
@@ -7,6 +8,7 @@
 ::pause
 
 ::assembleGame:
+
 @echo off 
 if exist kirby.nes (del kirby.nes)
 
