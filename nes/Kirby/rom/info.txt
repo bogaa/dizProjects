@@ -1,0 +1,8 @@
+Put the ROM mentioned below into this folder and execute the NES2SNES.bat.
+
+Database match: Kirby's Adventure (USA) (Rev 1)
+Database: No-Intro: Nintendo Entertainment System (v. 20210216-231042)
+File SHA-1: F324E7C8C3AD102ECDCCA011ECC494F6F345D768
+File CRC32: 9EFD5757
+ROM SHA-1: 118307DA6C77A592F0884BAAD14120301D8D3A1B
+ROM CRC32: 5ED6F221
