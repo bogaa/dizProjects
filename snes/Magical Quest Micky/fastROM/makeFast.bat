@@ -47,7 +47,7 @@ findstr /V "ORG " ..\export\bank_1F.asm > bank_1F.asm
 copy ..\export\labels.asm labels.asm
 
 ::assembleGame
-..\..\..\.tools\asar-1-91\asar.exe main.asm
+..\..\..\.tools\asar-1-91\asar.exe main.s
 
 timeout 2 
 exit
