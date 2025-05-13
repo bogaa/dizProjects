@@ -73,7 +73,7 @@ org $9F8000
 
 org $80FFC0       ; header
     db "THE MAGICAL QUEST    "         
-    db $30        ; mark as fastrom 
+    db $21        ; mark as fastrom 
 
 
       
