@@ -1799,6 +1799,7 @@
 80:B400 simon_collision_crouching
 80:B450 simon_collision_moveOutOfSolid
 80:B47B simon_collisionSolid_Air
+80:B4B5 playerMudCheck
 80:B64A moveSimonOutOfWallYpos
 80:B676 simonFloorCollusionWhileAir
 80:B714 getCollusionJumpLanding
