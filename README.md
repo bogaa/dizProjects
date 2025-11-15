@@ -10,35 +10,32 @@
 
 
 ## Credits: 
-## IsoFrieze, Dom and creator/contributer to Diztinguish and Asar.
-  https://github.com/IsoFrieze/DiztinGUIsh/releases
-
-
-### Kandowontu: 
-  DizFiles used for fastRom conversions. I have in mind to make the code more readable for some.
-  https://github.com/kandowontu/kandowontu-diz-files	
-
-
-### InsaneFirebat: 
-  Metroid dizassembly based on PJ's work. 
+### IsoFrieze, Dom, (and contributors) for [Diztinguish](https://github.com/IsoFrieze/DiztinGUIsh/releases)
+ 
+### RGBHacker, (and contributors) for [ASAR](https://github.com/RPGHacker/asar) 
   
-  https://patrickjohnston.org/bank/index.html
-  
-  https://github.com/InsaneFirebat/sm_disassembly/tree/main/diztinguish
-  
-  todo: adding ram-labels.. 
-  
-  https://patrickjohnston.org/ASM/ROM%20data/Super%20Metroid/RAM%20map.asm
 
+
+### Kandowontu 
+  [DizFiles](https://github.com/kandowontu/kandowontu-diz-files) been used for fastRom conversions. 
+  
+
+
+### InsaneFirebat 
+  Metroid dizassembly based on [PJ's work](https://patrickjohnston.org/bank/index.html) 
+  [InsaneFirebat](https://github.com/InsaneFirebat/sm_disassembly/tree/main/diztinguish)  
+  
+  
+  todo: adding [ram-labels](https://patrickjohnston.org/ASM/ROM%20data/Super%20Metroid/RAM%20map.asm) 
+ 
 	
-### GoldS: 	
-  MegamanX text disassembly. 
+### GoldS 	
+  MegamanX text [disassembly](https://romhackplaza.org/documents/mega-man-x-disassembly/) 
   
-  https://romhackplaza.org/documents/mega-man-x-disassembly/	
   
  
-### GoldS: 
-  Metal Marines disassembly by "Schenk mir dein Sparschwein"
+### "Schenk mir dein Sparschwein" 
+  Metal Marines disassembly with diz and BSNES
 
 
 
