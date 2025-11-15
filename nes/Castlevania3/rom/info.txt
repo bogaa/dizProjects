@@ -1,3 +1,6 @@
+#diz is made by bogaa
+
+
 Put the ROM mentioned below into this folder and execute the NES2SNES.bat.
 
 Database match: Castlevania III - Dracula's Curse (USA)

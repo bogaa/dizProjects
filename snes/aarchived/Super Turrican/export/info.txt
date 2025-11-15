@@ -1,3 +1,6 @@
+#diz is made by kandowontu
+
+
 Filename/rename: Super Turrican (U).smc
 
 Database match: Super Turrican (USA)

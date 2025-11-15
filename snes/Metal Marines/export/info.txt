@@ -1,0 +1,10 @@
+#made by "Schenk mir dein Sparschwein"
+
+
+Filename/rename: Metal Marines (USA).sfc
+
+Database match: Metal Marines (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: FE788E475FA5D44319E2C1C3D0A40F52A920E435
+File/ROM CRC32: 66787DF6
+

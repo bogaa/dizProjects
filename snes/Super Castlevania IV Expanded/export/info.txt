@@ -1,3 +1,6 @@
+#diz is made by bogaa
+
+
 Filename/rename: Super Castlevania IV (USA).sfc
 Patch the file with Castlevania IV (Expandet).bps (The expansion is fastRom and ment to use along SC4Ed)
 

@@ -1,3 +1,6 @@
+#diz is made by kandowontu
+
+
 Filename/rename: Act Raiser (U).sfc
 
 Database match: ActRaiser (USA)

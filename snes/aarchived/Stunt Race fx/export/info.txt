@@ -1,3 +1,6 @@
+#diz is made by kandowontu
+
+
 Filename/rename: Stunt Race FX (U) [!].smc
 
 Database match: Stunt Race FX (USA) (Rev 1)

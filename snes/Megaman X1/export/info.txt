@@ -1,3 +1,6 @@
+#diz is made by GoldS, bogaa
+
+
 Filename/rename: Mega Man X (V1.1) (U).smc
 
 Database match: Mega Man X (USA) (Rev 1)

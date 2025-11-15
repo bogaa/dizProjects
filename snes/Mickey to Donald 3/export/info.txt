@@ -1,0 +1,9 @@
+#diz is made by bogaa
+
+
+Filename/rename: Mickey to Donald - Magical Adventure 3 (J).smc
+
+Database match: Mickey to Donald - Magical Adventure 3 (Japan)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 8A153F92AD2498FBF66E4CB100F6E5B950098044
+File/ROM CRC32: 32EEA1E9

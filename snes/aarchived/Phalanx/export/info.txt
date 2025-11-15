@@ -1,3 +1,5 @@
+#diz is made by kandowontu
+
 Filename/rename: Phalanx - The Enforce Fighter A-144 (U) [!].smc
 
 Database match: Phalanx (USA)

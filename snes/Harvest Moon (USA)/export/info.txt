@@ -1,3 +1,6 @@
+#diz is made by bogaa
+
+
 Filename/rename: Harvest Moon (U).smc
 
 Database match: Harvest Moon (USA)

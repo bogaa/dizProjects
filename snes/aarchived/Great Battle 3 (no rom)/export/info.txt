@@ -1,6 +1,2 @@
-Filename/rename: Flying Hero - Bugyuru no Daibouken (J).smc
+#diz is made by kandowontu
 
-Database match: Flying Hero - Bugyuru no Daibouken (Japan)
-Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
-File/ROM SHA-1: 89A10F5CB9B19DCAABB1C26E884C102A49105F0C
-File/ROM CRC32: 1A19FC3A

@@ -1,3 +1,6 @@
+#diz is made by bogaa
+
+
 Filename/rename: ActRaiser 2 (U) [!].smc
 Patch the file with reBaseC0_act2.bps (This was done to make disassembly easier since I could not find a way to do it within diz)
 

@@ -1,0 +1,11 @@
+#diz is made by bogaa
+
+
+Filename/rename: Contra III - The Alien Wars (U) [!].smc
+
+Database match: Contra III - The Alien Wars (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 265886E3F665ADF2507E7B2F08B6B2ED9D0018B2
+File/ROM CRC32: 84DA7CFE
+
+

@@ -1,3 +1,5 @@
+#diz is made by kandowontu
+
 Filename/rename: Prince of Persia (U).smc
 
 Database match: Prince of Persia (USA)

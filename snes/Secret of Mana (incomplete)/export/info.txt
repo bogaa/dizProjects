@@ -1,3 +1,6 @@
+#diz is made by kandowontu
+
+
 Filename/rename: Secret of Mana (U) [!].smc
 
 Database match: Secret of Mana (USA)

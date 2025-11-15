@@ -1,3 +1,6 @@
+#diz is made by bogaa
+
+
 Put the ROM mentioned below into this folder and run the NES2SNES.bat.
 
 Database match: Kirby's Adventure (USA) (Rev 1)

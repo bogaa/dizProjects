@@ -1,3 +1,6 @@
+#diz is made by kandowontu
+
+
 Filename/rename: Final Fight (U).smc
 
 Database match: Final Fight (USA)

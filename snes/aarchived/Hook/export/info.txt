@@ -1,3 +1,5 @@
+#diz is made by kandowontu
+
 Filename/rename: Hook (U).smc
 
 Database match: Hook (USA)

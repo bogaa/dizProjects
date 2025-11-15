@@ -1,3 +1,5 @@
+#diz is made by kandowontu
+
 Filename/rename: HyperZone (U) [!].smc
 
 Database match: HyperZone (USA)
