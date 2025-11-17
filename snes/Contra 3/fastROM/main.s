@@ -88,6 +88,14 @@ org $808000
     jml goFastRom
   returnGoFastRom:
 
+org $808be2
+    jml goFastRom_01
+  returnGoFastRom_01:
+
+org $80819b
+    jml goFastNMI
+  returnGoFastNMI:
+
 org $808011
     jsl setFastRomRegister
 ;    lda #$85        ; data bank 
@@ -130,16 +138,19 @@ org $8098ec
     lda.l $850000,x 
 
 org $8080b2
-    lda.b #$85        ; data bank 
+    lda.b #$85        ; data bank    
 org $8081a9
+    lda.b #$85        ; data bank     
+org $80bd63
     lda.b #$85        ; data bank 
+org $808bf0
+    lda.b #$85        ; data bank       
+   
 org $80eb1c
     lda.b #$86        ; data bank 
 
 
-org $80819b
-    jml goFastNMI
-  returnGoFastNMI:
+
 
 
 pullPC 
@@ -164,8 +175,11 @@ pullPC
     plb
     rtl  
 
-
-
+goFastRom_01:
+    rep #$30
+    phx 
+    phy
+    jml returnGoFastRom_01
 
 
     pad $81ffff
