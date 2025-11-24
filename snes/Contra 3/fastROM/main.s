@@ -145,7 +145,11 @@ org $80bd63
     lda.b #$85        ; data bank 
 org $808bf0
     lda.b #$85        ; data bank       
-   
+org $80E7E7
+    LDA.B #$85        ; 00E7E7|A905    |      ;
+org $80EBB3    
+    LDA.B #$85        ; 00EBB3|A905    |      ;
+    
 org $80eb1c
     lda.b #$86        ; data bank 
 
