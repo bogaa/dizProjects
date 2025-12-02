@@ -1,0 +1,10 @@
+#diz is made by bogaa
+
+
+Filename/rename: Super Street Fighter II - The New Challengers (U).smc
+
+Database match: Super Street Fighter II (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 8E67787988024503C4ADEADD5FE50A340AA860D7
+File/ROM CRC32: F16D5CE9
+
