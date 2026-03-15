@@ -23,7 +23,7 @@ findstr /V "ORG " ..\export\bank_07.asm > bank_07.asm
 copy ..\export\labels.asm labels.asm
 
 ::assembleGame
-..\..\..\.tools\asar-1-91\asar.exe --fix-checksum=off mainNES.asm
+..\..\..\.tools\asar-1-91\asar.exe --fix-checksum=off mainNES.s
 
 ::copy /b "nesHeader.bin" + "mainNES.sfc" castlevania.nes
 type nesHeader.bin mainNES.sfc > castlevania.nes				
