@@ -49,7 +49,7 @@ findstr /V "ORG " ..\export\bank_1e.asm > bank_1e.asm
 copy ..\export\labels.asm labels.asm
 
 ::assembleGame
-..\..\..\.tools\asar-1-91\asar.exe --fix-checksum=off mainNES.asm
+..\..\..\.tools\asar-1-91\asar.exe --fix-checksum=off mainNES.s
 
 copy /b nesHeader.bin+mainNES.sfc  kirby.nes 
 

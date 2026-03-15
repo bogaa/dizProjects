@@ -1,8 +1,10 @@
 .bkp
-.tools
 .kandoOrginal
 .dizProjects
+.tools
 errors.txt
+*.zip
+*.7z
 *.asm
 *.sfc
 *.smc
