@@ -1,0 +1,20 @@
+#diz is made by RayofJay
+
+
+Filename/rename: U.N. Squadron (USA).sfc
+
+Database match: U.N. Squadron (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: A2DD48574B9F7A49977C91D12D5C52C17C2C82AA
+File/ROM CRC32: 231F0F67
+
+
+
+
+
+
+
+
+
+
+

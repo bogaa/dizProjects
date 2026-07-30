@@ -1,0 +1,64 @@
+----------------------------------------------------
+SC4 ROM expansion         Summery
+----------------------------------------------------
+
+
+The game is hacked to expand some data to the expanded part of the rom.
+This is done through just updating some long pointers. Or..
+
+..some load routines been hacked to check if a pointer uses a expanded bank. If yes the decompression 
+part is skiped..
+
+This is nice since the graphics can be viewed with some graphic viewers..
+Some bank data leaves free space to the end of the bank for regular ASM hacking.
+
+When I say "lvlPointerStruct" I mean that pointer are calculated with a set offset per level
+
+
+
+----------------------------------------------------
+SC4 ROM expansion content  (CPU=a08000) (ROM=100000)
+----------------------------------------------------
+
+
+levelTransitTable         ; A0C000-A0C440       (DATAlevel00 at A0FFD0 ??) 
+EXPANDED ROM              ; A0FFC0 ASCI TEXT   
+
+
+eventDataLvl00..          ; A18000-A1FFFF       (A1 eventBank. Lot of new space for new events)
+
+
+collusionDataLvl00..      ; A28000-A48FF8       (4 banks filled with collusion data. lvlPointerStruct)  .. then till A4FFFF is empty
+
+
+camaraLockTableLevel00..  ; A58000-A5E600       (A5 camLockBank)
+
+
+pointerTableNewEntranceTransit                            ..; A68000-A6C359       (A6 entranceData bank. lvlPointerStruct. Before the whole game had one. Here each level has a table so the user will not need to worry overwriting enteries)
+
+
+pointerTableNewEntranceData                               ..; A78000-A7C400       (A6 entranceData bank. lvlPointerStruct)
+
+
+GFX_dataLvL | GFX_dataSprite | blockData | sceneData      ..; A88000-ECEC38       (A8 - EC banks use the space like this and will directly follow with bossGFXdata!)
+
+
+bossGFXdata                                               ..; ECEC9D-F0DD38 (after this there will be music and miscGFX..)
+
+
+musicData                 ; F0DD7D-F3A57D
+
+
+miscGFX | miscMapData | ..; F3A57D-FBCF38   (simonSprite F6A57D-F89B98 | animatedTiles for levels that go to WRAM F8883D-F89F1D)
+
+
+musicSampleData           ; FBCF3D-FCCF9C   (probably gloabel music data) 
+musicEngine               ; FCCF9D-FCDCB0  
+musicEngineData           ; FCDCB6-FD87F8       
+
+
+GFX_viperBoss and misc    ; FD87FD (misc might be related to event 0x47 subID stuff or after boss stuff)
+
+
+emptyBankFE..             ; FE8000-FEFFFF 
+emptyBankFF..             ; FF8000-FFFFFF 
