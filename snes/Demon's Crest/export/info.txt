@@ -1,0 +1,22 @@
+#diz is made by FredYeye, bogaa 
+
+
+Filename/rename: Demon's Crest (U).sfc
+
+Database match: Demon's Crest (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: 743D60EE1536B0C7C24DBB8BA39D14ED5937C0D5
+File/ROM CRC32: E8236AD2
+
+
+
+
+
+
+
+
+
+
+
+
+

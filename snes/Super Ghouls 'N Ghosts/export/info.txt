@@ -1,0 +1,21 @@
+#diz is made by 
+
+
+Filename/rename: Super Ghouls 'N Ghosts (U) [!].sfc
+
+Database match: Super Ghouls 'N Ghosts (USA)
+Database: No-Intro: Super Nintendo Entertainment System (v. 20210222-050638)
+File/ROM SHA-1: F12280B13EEA88CA03D700B75CF3C13A0E13F3BC
+File/ROM CRC32: 6AABA901
+
+
+
+
+
+
+
+
+
+
+
+
