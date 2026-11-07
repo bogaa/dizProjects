@@ -3,6 +3,7 @@
 .dizProjects
 .tools
 errors.txt
+*.dizprefs
 *.zip
 *.7z
 *.asm
